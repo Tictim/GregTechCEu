@@ -73,7 +73,18 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
         disableStats();
     }
 
-    public static Cuboid6 getSideBox(EnumFacing side, float thickness) {
+    /**
+     * Get cuboid shape for pipe section's area.
+     *
+     * @param side      The specific section of the pipe; more specifically,
+     *                  <ul>
+     *                  <li>{@code null} represents the central cube part of the pipe.</li>
+     *                  <li>Any nonnull values represent the branch part of the pipe, corresponding to the direction.</li>
+     *                  </ul>
+     * @param thickness Thickness of the pipe
+     * @return Cuboid shape for pipe section's area
+     */
+    public static Cuboid6 getSideBox(@Nullable EnumFacing side, float thickness) {
         float min = (1.0f - thickness) / 2.0f, max = min + thickness;
         float faceMin = 0f, faceMax = 1f;
 
@@ -102,16 +113,6 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
             default:
                 cuboid = new Cuboid6(min, min, min, max, max, max);
         }
-        return cuboid;
-    }
-
-    /**
-     * @return the pipe cuboid for that side but with a offset one the facing with the cover to prevent z fighting.
-     */
-    public static Cuboid6 getCoverSideBox(EnumFacing side, float thickness) {
-        Cuboid6 cuboid = getSideBox(side, thickness);
-        if (side != null)
-            cuboid.setSide(side, side.getAxisDirection() == EnumFacing.AxisDirection.NEGATIVE ? 0.001 : 0.999);
         return cuboid;
     }
 
@@ -498,7 +499,7 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
 
     @Override
     public boolean recolorBlock(World world, @Nonnull BlockPos pos, @Nonnull EnumFacing side, @Nonnull EnumDyeColor color) {
-        IPipeTile<PipeType, NodeDataType> tileEntityPipe = (IPipeTile<PipeType, NodeDataType>) world.getTileEntity(pos);
+        IPipeTile<PipeType, NodeDataType> tileEntityPipe = getPipeTileEntity(world, pos);
         if (tileEntityPipe != null && tileEntityPipe.getPipeType() != null &&
                 tileEntityPipe.getPipeType().isPaintable() &&
                 tileEntityPipe.getPaintingColor() != color.colorValue) {
@@ -516,13 +517,15 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
      * Just returns proper pipe tile entity
      */
     public IPipeTile<PipeType, NodeDataType> getPipeTileEntity(IBlockAccess world, BlockPos selfPos) {
-        TileEntity tileEntityAtPos = world.getTileEntity(selfPos);
-        return getPipeTileEntity(tileEntityAtPos);
+        return getPipeTileEntity(world.getTileEntity(selfPos));
     }
 
-    public IPipeTile<PipeType, NodeDataType> getPipeTileEntity(TileEntity tileEntityAtPos) {
-        if (tileEntityAtPos instanceof IPipeTile && isThisPipeBlock(((IPipeTile<PipeType, NodeDataType>) tileEntityAtPos).getPipeBlock())) {
-            return (IPipeTile<PipeType, NodeDataType>) tileEntityAtPos;
+    @SuppressWarnings("unchecked")
+    public IPipeTile<PipeType, NodeDataType> getPipeTileEntity(TileEntity tileEntity) {
+        if (tileEntity instanceof IPipeTile) {
+            if (isThisPipeBlock(((IPipeTile<?, ?>) tileEntity).getPipeBlock())) {
+                return (IPipeTile<PipeType, NodeDataType>) tileEntity;
+            }
         }
         return null;
     }
@@ -539,12 +542,12 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
             cover = ((IPipeTile<?, ?>) other).getCoverableImplementation().getCoverAtSide(facing.getOpposite());
             if (cover != null && !cover.canPipePassThrough())
                 return false;
-            return canPipesConnect(selfTile, facing, (IPipeTile<PipeType, NodeDataType>) other);
+            return canPipesConnect(selfTile, facing, (IPipeTile<?, ?>) other);
         }
         return canPipeConnectToBlock(selfTile, facing, other);
     }
 
-    public abstract boolean canPipesConnect(IPipeTile<PipeType, NodeDataType> selfTile, EnumFacing side, IPipeTile<PipeType, NodeDataType> sideTile);
+    public abstract boolean canPipesConnect(IPipeTile<PipeType, NodeDataType> selfTile, EnumFacing side, IPipeTile<?, ?> sideTile);
 
     public abstract boolean canPipeConnectToBlock(IPipeTile<PipeType, NodeDataType> selfTile, EnumFacing side, @Nullable TileEntity tile);
 
@@ -574,7 +577,7 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
         // a tool is put in hand, and will still be standing where they were before.
         result.add(new IndexedCuboid6(new PrimaryBoxData(true), getSideBox(null, thickness)));
         for (EnumFacing side : EnumFacing.VALUES) {
-            if ((actualConnections & 1 << side.getIndex()) > 0) {
+            if ((actualConnections & 1 << side.getIndex()) != 0) {
                 result.add(new IndexedCuboid6(new PipeConnectionData(side), getSideBox(side, thickness)));
             }
         }
@@ -647,5 +650,4 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
             this.side = side;
         }
     }
-
 }

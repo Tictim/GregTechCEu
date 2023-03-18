@@ -59,6 +59,13 @@ public interface ICoverable {
 
     ItemStack getStackForm();
 
+    /**
+     * @return the cover plate thickness. It is used to render cover's base plate
+     * if this meta tile entity is not full block length, and also
+     * to check whatever cover placement is possible on specified side,
+     * because cover cannot be placed if collision boxes of machine and it's plate overlap
+     * If zero, it is expected that machine is full block and plate doesn't need to be rendered
+     */
     double getCoverPlateThickness();
 
     int getPaintingColorForRendering();
@@ -70,8 +77,8 @@ public interface ICoverable {
     void scheduleRenderUpdate();
 
     default boolean hasAnyCover() {
-        for(EnumFacing facing : EnumFacing.VALUES)
-            if(getCoverAtSide(facing) != null)
+        for (EnumFacing facing : EnumFacing.VALUES)
+            if (getCoverAtSide(facing) != null)
                 return true;
         return false;
     }
@@ -86,16 +93,18 @@ public interface ICoverable {
         for (EnumFacing sideFacing : EnumFacing.values()) {
             CoverBehavior coverBehavior = getCoverAtSide(sideFacing);
             if (coverBehavior == null) continue;
-            Cuboid6 plateBox = getCoverPlateBox(sideFacing, coverPlateThickness);
-
-            if (coverBehavior.canRenderInLayer(layer) && coverPlateThickness > 0) {
-                renderState.preRenderWorld(getWorld(), getPos());
-                coverBehavior.renderCoverPlate(renderState, translation, platePipeline, plateBox, layer);
-            }
+            double coverPlateThicknessForSide = coverBehavior.getCoverPlateThickness(sideFacing, coverPlateThickness);
+            Cuboid6 plateBox = getCoverPlateBox(sideFacing, coverPlateThicknessForSide);
 
             if (coverBehavior.canRenderInLayer(layer)) {
+                if (coverPlateThicknessForSide > 0) {
+                    renderState.preRenderWorld(getWorld(), getPos());
+                    coverBehavior.renderCoverPlate(renderState, translation, platePipeline, plateBox, layer);
+                }
+
                 coverBehavior.renderCover(renderState, RenderUtil.adjustTrans(translation, sideFacing, 2), coverPipeline, plateBox, layer);
-                if (coverPlateThickness == 0.0 && shouldRenderBackSide() && coverBehavior.canRenderBackside()) {
+
+                if (coverPlateThicknessForSide == 0.0 && shouldRenderBackSide() && coverBehavior.canRenderBackside()) {
                     //machine is full block, but still not opaque - render cover on the back side too
                     Matrix4 backTranslation = translation.copy();
                     if (sideFacing.getAxis().isVertical()) {

@@ -6,14 +6,13 @@ import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.texture.TextureUtils.IIconRegister;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
-import codechicken.lib.vec.TransformationList;
 import codechicken.lib.vec.uv.IconTransformation;
-import codechicken.lib.vec.uv.UVTransformationList;
 import gregtech.api.GTValues;
 import gregtech.api.util.GTLog;
 import gregtech.client.renderer.CubeRendererState;
 import gregtech.client.renderer.ICubeRenderer;
-import gregtech.client.renderer.cclop.UVMirror;
+import gregtech.client.renderer.cclop.BottomUVAdjustment;
+import gregtech.client.renderer.cclop.UVList2;
 import gregtech.client.renderer.texture.cube.*;
 import gregtech.client.renderer.texture.custom.*;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -262,36 +261,6 @@ public class Textures {
     public static final ResourceLocation GREEN_CAPE_TEXTURE = new ResourceLocation(GTValues.MODID, "textures/capes/greencape.png");
 
     @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite RESTRICTIVE_OVERLAY;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite PIPE_BLOCKED_OVERLAY;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite PIPE_TINY;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite PIPE_SMALL;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite PIPE_NORMAL;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite PIPE_LARGE;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite PIPE_HUGE;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite PIPE_QUADRUPLE;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite PIPE_NONUPLE;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite PIPE_SIDE;
-
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite PIPE_SMALL_WOOD;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite PIPE_NORMAL_WOOD;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite PIPE_LARGE_WOOD;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite PIPE_SIDE_WOOD;
-
-    @SideOnly(Side.CLIENT)
     public static ThreadLocal<CubeRendererState> RENDER_STATE;
 
     static {
@@ -310,21 +279,6 @@ public class Textures {
         for (IIconRegister iconRegister : iconRegisters) {
             iconRegister.registerIcons(textureMap);
         }
-
-        RESTRICTIVE_OVERLAY = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_restrictive"));
-        PIPE_BLOCKED_OVERLAY = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_blocked"));
-        PIPE_TINY = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_tiny_in"));
-        PIPE_SMALL = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_small_in"));
-        PIPE_NORMAL = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_normal_in"));
-        PIPE_LARGE = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_large_in"));
-        PIPE_HUGE = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_huge_in"));
-        PIPE_QUADRUPLE = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_quadruple_in"));
-        PIPE_NONUPLE = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_nonuple_in"));
-        PIPE_SIDE = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_side"));
-        PIPE_SMALL_WOOD = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_small_in_wood"));
-        PIPE_NORMAL_WOOD = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_normal_in_wood"));
-        PIPE_LARGE_WOOD = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_large_in_wood"));
-        PIPE_SIDE_WOOD = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_side_wood"));
     }
 
     @SideOnly(Side.CLIENT)
@@ -335,12 +289,8 @@ public class Textures {
         }
         BlockFace blockFace = blockFaces.get();
         blockFace.loadCuboidFace(bounds, face.getIndex());
-        UVTransformationList uvList = new UVTransformationList(new IconTransformation(sprite));
-        if (face.getIndex() == 0) {
-            uvList.prepend(new UVMirror(0, 0, bounds.min.z, bounds.max.z));
-        }
         renderState.setPipeline(blockFace, 0, blockFace.verts.length,
-                ArrayUtils.addAll(ops, new TransformationList(translation), uvList));
+                ArrayUtils.addAll(ops, translation, new UVList2(BottomUVAdjustment.INSTANCE, new IconTransformation(sprite))));
         renderState.render();
     }
 

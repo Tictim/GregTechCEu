@@ -14,10 +14,9 @@ import com.google.common.cache.CacheBuilder;
 import gregtech.api.cover.ICoverable;
 import gregtech.api.items.metaitem.MetaItem;
 import gregtech.api.util.ModCompatibility;
-import gregtech.client.model.pipeline.VertexLighterFlatSpecial;
-import gregtech.client.model.pipeline.VertexLighterSmoothAoSpecial;
 import gregtech.client.utils.AdvCCRSConsumer;
 import gregtech.client.utils.FacadeBlockAccess;
+import gregtech.client.utils.PipelineUtil;
 import gregtech.common.covers.facade.FacadeHelper;
 import gregtech.common.items.behaviors.FacadeItem;
 import net.minecraft.block.state.IBlockState;
@@ -56,16 +55,13 @@ import java.util.concurrent.TimeUnit;
 @SideOnly(Side.CLIENT)
 public class FacadeRenderer implements IItemRenderer {
 
-    final static int[] sideOffsets = {1, 1, 2, 2, 0, 0};
-    final static float[] sideSoftBounds = {0, 1, 0, 1, 0, 1};
+    private final static int[] sideOffsets = {1, 1, 2, 2, 0, 0};
+    private final static float[] sideSoftBounds = {0, 1, 0, 1, 0, 1};
 
     private final static float FACADE_RENDER_OFFSET = 2.0f / 512.0f;
     private final static float FACADE_RENDER_OFFSET2 = 1 - FACADE_RENDER_OFFSET;
 
-    public static final ThreadLocal<VertexLighterFlat> lighterFlat = ThreadLocal.withInitial(() -> new VertexLighterFlatSpecial(Minecraft.getMinecraft().getBlockColors()));
-    public static final ThreadLocal<VertexLighterFlat> lighterSmooth = ThreadLocal.withInitial(() -> new VertexLighterSmoothAoSpecial(Minecraft.getMinecraft().getBlockColors()));
-
-    public static final Cache<String, List<CCQuad>> itemQuadCache = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.HOURS).build();
+    private static final Cache<String, List<CCQuad>> itemQuadCache = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.HOURS).build();
 
     public static void init() {
         ((IReloadableResourceManager) Minecraft.getMinecraft().getResourceManager()).registerReloadListener(resourceManager -> itemQuadCache.invalidateAll());
@@ -83,8 +79,7 @@ public class FacadeRenderer implements IItemRenderer {
         renderState.startDrawing(GL11.GL_QUADS, DefaultVertexFormats.ITEM);
         try {
             FacadeRenderer.renderItemCover(renderState, EnumFacing.NORTH.getIndex(), facadeStack, ICoverable.getCoverPlateBox(EnumFacing.NORTH, 2.0 / 16.0));
-        } catch (Throwable ignored) {
-        }
+        } catch (Throwable ignored) {}
         renderState.draw();
     }
 
@@ -104,7 +99,6 @@ public class FacadeRenderer implements IItemRenderer {
     }
 
     public static boolean renderBlockCover(CCRenderState ccrs, Matrix4 translation, IBlockAccess world, BlockPos pos, int side, IBlockState state, Cuboid6 bounds, BlockRenderLayer layer) {
-
         EnumFacing face = EnumFacing.VALUES[side];
         IBlockAccess coverAccess = new FacadeBlockAccess(world, pos, face, state);
         if (layer != null && !state.getBlock().canRenderInLayer(state, layer)) {
@@ -114,16 +108,15 @@ public class FacadeRenderer implements IItemRenderer {
 
         try {
             state = state.getActualState(coverAccess, pos);
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
 
         IBakedModel model = dispatcher.getModelForState(state);
 
         try {
             state = state.getBlock().getExtendedState(state, coverAccess, pos);
-        } catch (Exception ignored) {
-        }
-        long posRand = net.minecraft.util.math.MathHelper.getPositionRandom(pos);
+        } catch (Exception ignored) {}
+
+        long posRand = MathHelper.getPositionRandom(pos);
         List<BakedQuad> bakedQuads = new LinkedList<>(model.getQuads(state, null, posRand));
 
         for (EnumFacing face2 : EnumFacing.VALUES) {
@@ -134,7 +127,9 @@ public class FacadeRenderer implements IItemRenderer {
         quads = sliceQuads(quads, side, bounds);
 
         if (!quads.isEmpty()) {
-            VertexLighterFlat lighter = setupLighter(ccrs, translation, state, coverAccess, pos, model);
+            VertexLighterFlat lighter = PipelineUtil.getVertexLighter(
+                    new AdvCCRSConsumer(ccrs).setTranslation(translation),
+                    state.getLightValue(coverAccess, pos) == 0 && model.isAmbientOcclusion(state));
             return renderBlockQuads(lighter, coverAccess, state, quads, pos);
         }
         return false;
@@ -160,14 +155,13 @@ public class FacadeRenderer implements IItemRenderer {
             itemQuadCache.put(cacheKey, renderQuads);
         }
 
-        AdvCCRSConsumer consumer = new AdvCCRSConsumer(ccrs);
-        consumer.setTranslation(new Matrix4()
-                .translate(Vector3.center.copy().subtract(bounds.center()))
-                .scale(1.05, 1.05, 1.05));
+        AdvCCRSConsumer consumer = new AdvCCRSConsumer(ccrs)
+                .setTranslation(new Matrix4()
+                        .translate(Vector3.center.copy().subtract(bounds.center()))
+                        .scale(1.05, 1.05, 1.05));
         for (CCQuad quad : renderQuads) {
             quad.pipe(consumer);
         }
-
     }
 
     public static List<CCQuad> applyItemTint(List<CCQuad> quads, ItemStack stack) {
@@ -193,17 +187,6 @@ public class FacadeRenderer implements IItemRenderer {
         }
 
         return retQuads;
-    }
-
-
-    public static VertexLighterFlat setupLighter(CCRenderState ccrs, Matrix4 translation, IBlockState state, IBlockAccess access, BlockPos pos, IBakedModel model) {
-        boolean renderAO = Minecraft.isAmbientOcclusionEnabled() && state.getLightValue(access, pos) == 0 && model.isAmbientOcclusion();
-        VertexLighterFlat lighter = renderAO ? lighterSmooth.get() : lighterFlat.get();
-
-        AdvCCRSConsumer consumer = new AdvCCRSConsumer(ccrs);
-        lighter.setParent(consumer);
-        consumer.setTranslation(translation);
-        return lighter;
     }
 
     public static boolean renderBlockQuads(VertexLighterFlat lighter, IBlockAccess access, IBlockState state, List<CCQuad> quads, BlockPos pos) {

@@ -123,6 +123,10 @@ public class CoverFacade extends CoverBehavior implements IFacadeCover {
     }
 
     @Override
-    public void renderCoverPlate(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline, Cuboid6 plateBox, BlockRenderLayer layer) {
+    public void renderCoverPlate(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline, Cuboid6 plateBox, BlockRenderLayer layer) {}
+
+    @Override
+    public double getCoverPlateThickness(EnumFacing side, double coverPlateThickness) {
+        return 2.0f / 512.0f;
     }
 }

@@ -127,7 +127,7 @@ public class BlockCable extends BlockMaterialPipe<Insulation, WireProperties, Wo
     }
 
     @Override
-    public boolean canPipesConnect(IPipeTile<Insulation, WireProperties> selfTile, EnumFacing side, IPipeTile<Insulation, WireProperties> sideTile) {
+    public boolean canPipesConnect(IPipeTile<Insulation, WireProperties> selfTile, EnumFacing side, IPipeTile<?, ?> sideTile) {
         return selfTile instanceof TileEntityCable && sideTile instanceof TileEntityCable;
     }
 
@@ -154,6 +154,7 @@ public class BlockCable extends BlockMaterialPipe<Insulation, WireProperties, Wo
 
     @Override
     public void onEntityCollision(World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Entity entityIn) {
+        super.onEntityCollision(worldIn, pos, state, entityIn);
         if (worldIn.isRemote) return;
         Insulation insulation = getPipeTileEntity(worldIn, pos).getPipeType();
         if (insulation.insulationLevel == -1 && entityIn instanceof EntityLivingBase) {

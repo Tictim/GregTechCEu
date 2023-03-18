@@ -93,7 +93,7 @@ public class BlockItemPipe extends BlockMaterialPipe<ItemPipeType, ItemPipePrope
     }
 
     @Override
-    public boolean canPipesConnect(IPipeTile<ItemPipeType, ItemPipeProperties> selfTile, EnumFacing side, IPipeTile<ItemPipeType, ItemPipeProperties> sideTile) {
+    public boolean canPipesConnect(IPipeTile<ItemPipeType, ItemPipeProperties> selfTile, EnumFacing side, IPipeTile<?, ?> sideTile) {
         return selfTile instanceof TileEntityItemPipe && sideTile instanceof TileEntityItemPipe;
     }
 

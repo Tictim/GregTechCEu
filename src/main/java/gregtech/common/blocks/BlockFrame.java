@@ -182,7 +182,6 @@ public final class BlockFrame extends DelayedStateBlock {
     }
 
     public boolean removeFrame(World world, BlockPos pos, EntityPlayer player, ItemStack stack) {
-
         TileEntity te = world.getTileEntity(pos);
         if (te instanceof TileEntityPipeBase<?, ?> && ((IPipeTile<?, ?>) te).getFrameMaterial() != null) {
             TileEntityPipeBase<?, ?> pipeTile = (TileEntityPipeBase<?, ?>) te;
@@ -271,6 +270,12 @@ public final class BlockFrame extends DelayedStateBlock {
         }
     }
 
+    @Override
+    @SuppressWarnings("deprecation")
+    public boolean causesSuffocation(IBlockState state) {
+        return false;
+    }
+
     @Nonnull
     @Override
     @SuppressWarnings("deprecation")
@@ -292,6 +297,12 @@ public final class BlockFrame extends DelayedStateBlock {
 
     @Override
     @SuppressWarnings("deprecation")
+    public boolean isFullCube(IBlockState state) {
+        return false;
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
     public boolean isOpaqueCube(@Nonnull IBlockState state) {
         return false;
     }
@@ -301,6 +312,25 @@ public final class BlockFrame extends DelayedStateBlock {
     @SuppressWarnings("deprecation")
     public BlockFaceShape getBlockFaceShape(@Nonnull IBlockAccess worldIn, @Nonnull IBlockState state, @Nonnull BlockPos pos, @Nonnull EnumFacing face) {
         return BlockFaceShape.UNDEFINED;
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public boolean shouldSideBeRendered(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) {
+        BlockPos offset = pos.offset(side);
+        IBlockState sideState = world.getBlockState(offset);
+        if (sideState == state) return false;
+        if (sideState.getBlock() instanceof BlockPipe) {
+            TileEntity te = world.getTileEntity(offset);
+            if (te instanceof IPipeTile) {
+                IPipeTile<?, ?> pipe = (IPipeTile<?, ?>) te;
+                if (pipe.getFrameMaterial() == state.getValue(variantProperty) ||
+                        pipe.getCoverableImplementation().getCoverAtSide(side.getOpposite()) != null) {
+                    return false;
+                }
+            }
+        }
+        return !sideState.doesSideBlockRendering(world, offset, side.getOpposite());
     }
 
     @SideOnly(Side.CLIENT)

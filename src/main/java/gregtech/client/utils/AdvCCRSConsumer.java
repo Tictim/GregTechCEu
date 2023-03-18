@@ -18,9 +18,20 @@ public class AdvCCRSConsumer implements IVertexConsumer {
 
     private final CCRenderState ccrs;
     private Matrix4 translation = new Matrix4();
+    private boolean runPipeline;
 
-    public AdvCCRSConsumer(CCRenderState ccrs) {
+    public AdvCCRSConsumer(@Nonnull CCRenderState ccrs) {
         this.ccrs = ccrs;
+    }
+
+    public AdvCCRSConsumer setTranslation(@Nonnull Matrix4 translation) {
+        this.translation = translation;
+        return this;
+    }
+
+    public AdvCCRSConsumer setRunPipeline(boolean runPipeline) {
+        this.runPipeline = runPipeline;
+        return this;
     }
 
     @Nonnull
@@ -62,23 +73,21 @@ public class AdvCCRSConsumer implements IVertexConsumer {
                 throw new UnsupportedOperationException("Generic vertex format element");
         }
         if (e == format.getElementCount() - 1) {
+            if (runPipeline) {
+                ccrs.runPipeline();
+            }
             ccrs.writeVert();
         }
     }
 
-    public void setTranslation(Matrix4 translation) {
-        this.translation = translation;
-    }
-
     @Override
-    public void setQuadTint(int tint) {
-    }
+    public void setQuadTint(int tint) {}
 
     @Override
     public void setQuadOrientation(@Nonnull EnumFacing orientation) {
+        ccrs.lc.side = ccrs.side = orientation.getIndex();
     }
 
     @Override
-    public void setApplyDiffuseLighting(boolean diffuse) {
-    }
+    public void setApplyDiffuseLighting(boolean diffuse) {}
 }

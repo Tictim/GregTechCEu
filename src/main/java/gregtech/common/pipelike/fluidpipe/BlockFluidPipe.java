@@ -93,7 +93,7 @@ public class BlockFluidPipe extends BlockMaterialPipe<FluidPipeType, FluidPipePr
     }
 
     @Override
-    public boolean canPipesConnect(IPipeTile<FluidPipeType, FluidPipeProperties> selfTile, EnumFacing side, IPipeTile<FluidPipeType, FluidPipeProperties> sideTile) {
+    public boolean canPipesConnect(IPipeTile<FluidPipeType, FluidPipeProperties> selfTile, EnumFacing side, IPipeTile<?, ?> sideTile) {
         return selfTile instanceof TileEntityFluidPipe && sideTile instanceof TileEntityFluidPipe;
     }
 
@@ -113,6 +113,7 @@ public class BlockFluidPipe extends BlockMaterialPipe<FluidPipeType, FluidPipePr
 
     @Override
     public void onEntityCollision(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Entity entityIn) {
+        super.onEntityCollision(worldIn, pos, state, entityIn);
         if (worldIn.isRemote) return;
         TileEntityFluidPipe pipe = (TileEntityFluidPipe) getPipeTileEntity(worldIn, pos);
         if (pipe instanceof TileEntityFluidPipeTickable && pipe.getFrameMaterial() == null && ((TileEntityFluidPipeTickable) pipe).getOffsetTimer() % 10 == 0) {

@@ -10,12 +10,10 @@ import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Vector3;
 import codechicken.lib.vec.uv.IconTransformation;
 import gregtech.api.GTValues;
-import gregtech.client.renderer.ICCLBlockRenderer;
-import gregtech.client.renderer.texture.Textures;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.ModCompatibility;
+import gregtech.client.renderer.ICCLBlockRenderer;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
@@ -40,13 +38,11 @@ public class CCLBlockRenderer implements ICCBlockRenderer, IItemRenderer {
     public static final ModelResourceLocation MODEL_LOCATION = new ModelResourceLocation(new ResourceLocation(GTValues.MODID, "ccl_block"), "normal");
     public static final CCLBlockRenderer INSTANCE = new CCLBlockRenderer();
     public static EnumBlockRenderType BLOCK_RENDER_TYPE;
-    public static Minecraft mc = Minecraft.getMinecraft();
 
     public static void preInit() {
         BLOCK_RENDER_TYPE = BlockRenderingRegistry.createRenderType("gregtech_ccl_block");
         BlockRenderingRegistry.registerRenderer(BLOCK_RENDER_TYPE, INSTANCE);
         MinecraftForge.EVENT_BUS.register(INSTANCE);
-        TextureUtils.addIconRegister(Textures::register);
     }
 
     @SubscribeEvent

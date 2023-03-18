@@ -1,13 +1,9 @@
 package gregtech.client.renderer.pipe;
 
-import codechicken.lib.vec.uv.IconTransformation;
 import gregtech.api.GTValues;
-import gregtech.api.pipenet.block.BlockPipe;
 import gregtech.api.pipenet.block.IPipeType;
-import gregtech.api.pipenet.tile.IPipeTile;
 import gregtech.api.unification.material.Material;
-import gregtech.api.unification.material.Materials;
-import gregtech.client.renderer.texture.Textures;
+import gregtech.api.unification.material.info.MaterialIconSet;
 import gregtech.common.pipelike.fluidpipe.FluidPipeType;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureMap;
@@ -19,49 +15,67 @@ import java.util.EnumMap;
 public class FluidPipeRenderer extends PipeRenderer {
 
     public static final FluidPipeRenderer INSTANCE = new FluidPipeRenderer();
-    private final EnumMap<FluidPipeType, TextureAtlasSprite> pipeTextures = new EnumMap<>(FluidPipeType.class);
-    private final EnumMap<FluidPipeType, TextureAtlasSprite> pipeTexturesWood = new EnumMap<>(FluidPipeType.class);
+
+    private TextureAtlasSprite pipeSide;
+    private TextureAtlasSprite pipeSideWood;
+
+    private final EnumMap<FluidPipeType, TextureAtlasSprite> openFaces = new EnumMap<>(FluidPipeType.class);
+    private final EnumMap<FluidPipeType, TextureAtlasSprite> openFacesWood = new EnumMap<>(FluidPipeType.class);
+
+    private final EnumMap<FluidPipeType, TextureAtlasSprite> dynamicPipes = new EnumMap<>(FluidPipeType.class);
+    private final EnumMap<FluidPipeType, TextureAtlasSprite> dynamicPipesWood = new EnumMap<>(FluidPipeType.class);
 
     private FluidPipeRenderer() {
         super("gt_fluid_pipe", new ResourceLocation(GTValues.MODID, "fluid_pipe"));
     }
 
     @Override
-    public void registerIcons(TextureMap map) {
-        pipeTextures.put(FluidPipeType.TINY, Textures.PIPE_TINY);
-        pipeTextures.put(FluidPipeType.SMALL, Textures.PIPE_SMALL);
-        pipeTextures.put(FluidPipeType.NORMAL, Textures.PIPE_NORMAL);
-        pipeTextures.put(FluidPipeType.LARGE, Textures.PIPE_LARGE);
-        pipeTextures.put(FluidPipeType.HUGE, Textures.PIPE_HUGE);
-        pipeTextures.put(FluidPipeType.QUADRUPLE, Textures.PIPE_QUADRUPLE);
-        pipeTextures.put(FluidPipeType.NONUPLE, Textures.PIPE_NONUPLE);
+    protected void registerPipeTextures(TextureMap map) {
+        this.pipeSide = texture(map, GTValues.MODID, "blocks/pipe/pipe_side");
+        this.pipeSideWood = texture(map, GTValues.MODID, "blocks/pipe/pipe_side_wood");
 
-        pipeTexturesWood.put(FluidPipeType.SMALL, Textures.PIPE_SMALL_WOOD);
-        pipeTexturesWood.put(FluidPipeType.NORMAL, Textures.PIPE_NORMAL_WOOD);
-        pipeTexturesWood.put(FluidPipeType.LARGE, Textures.PIPE_LARGE_WOOD);
+        initialize(map, this.openFaces, "blocks/pipe/pipe_%s_in", false,
+                FluidPipeType.values());
+        initialize(map, this.openFacesWood, "blocks/pipe/pipe_%s_in_wood", false,
+                FluidPipeType.SMALL, FluidPipeType.NORMAL, FluidPipeType.LARGE);
+
+        initialize(map, this.dynamicPipes, "blocks/pipe/dynamic/pipe_%s", true,
+                FluidPipeType.values());
+        initialize(map, this.dynamicPipesWood, "blocks/pipe/dynamic/pipe_%s_wood", true,
+                FluidPipeType.SMALL, FluidPipeType.NORMAL, FluidPipeType.LARGE);
+    }
+
+    private static void initialize(TextureMap map, EnumMap<FluidPipeType, TextureAtlasSprite> collection,
+                                   String location, boolean optional, FluidPipeType... types) {
+        for (FluidPipeType type : types) {
+            collection.put(type, texture(map, GTValues.MODID, String.format(location, type.name), optional));
+        }
     }
 
     @Override
-    public void buildRenderer(PipeRenderContext renderContext, BlockPipe<?, ?, ?> blockPipe, IPipeTile<?, ?> pipeTile, IPipeType<?> pipeType, @Nullable Material material) {
-        if (material == null || !(pipeType instanceof FluidPipeType)) {
-            return;
-        }
-        if(material == Materials.Wood || material == Materials.TreatedWood) {
-            TextureAtlasSprite sprite = pipeTexturesWood.get(pipeType);
-            if(sprite != null) {
-                renderContext.addOpenFaceRender(new IconTransformation(sprite));
+    protected void buildPipelines(PipeRenderContext context, CachedPipeline openFace, CachedPipeline side) {
+        IPipeType<?> pipeType = context.getPipeType();
+        if (pipeType instanceof FluidPipeType) {
+            if (context.getMaterial() != null && isWood(context.getMaterial())) {
+                TextureAtlasSprite sprite = openFacesWood.get(pipeType);
+                openFace.addSprite(sprite != null ? sprite : openFaces.get(pipeType));
+                side.addSideSprite(dynamicPipesWood.get(pipeType), pipeSideWood);
             } else {
-                renderContext.addOpenFaceRender(new IconTransformation(pipeTextures.get(pipeType)));
+                openFace.addSprite(openFaces.get(pipeType));
+                side.addSideSprite(dynamicPipes.get(pipeType), pipeSide);
             }
-            renderContext.addSideRender(new IconTransformation(Textures.PIPE_SIDE_WOOD));
-        } else {
-            renderContext.addOpenFaceRender(new IconTransformation(pipeTextures.get(pipeType)))
-                    .addSideRender(new IconTransformation(Textures.PIPE_SIDE));
         }
     }
 
     @Override
     public TextureAtlasSprite getParticleTexture(IPipeType<?> pipeType, @Nullable Material material) {
-        return Textures.PIPE_SIDE;
+        return material != null && isWood(material) ? pipeSideWood : pipeSide;
+    }
+
+    private static boolean isWood(Material material) {
+        for (MaterialIconSet s = material.getMaterialIconSet(); !s.isRootIconset; s = s.parentIconset) {
+            if (s == MaterialIconSet.WOOD) return true;
+        }
+        return false;
     }
 }

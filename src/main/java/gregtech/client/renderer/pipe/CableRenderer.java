@@ -1,11 +1,8 @@
 package gregtech.client.renderer.pipe;
 
 import codechicken.lib.render.pipeline.ColourMultiplier;
-import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.texture.TextureUtils;
-import codechicken.lib.vec.uv.IconTransformation;
 import gregtech.api.GTValues;
-import gregtech.api.pipenet.block.BlockPipe;
 import gregtech.api.pipenet.block.IPipeType;
 import gregtech.api.pipenet.block.material.TileEntityMaterialPipeBase;
 import gregtech.api.pipenet.tile.IPipeTile;
@@ -18,58 +15,64 @@ import net.minecraft.util.ResourceLocation;
 import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nullable;
+import java.util.EnumMap;
 
 public class CableRenderer extends PipeRenderer {
 
     public static final CableRenderer INSTANCE = new CableRenderer();
+
+    private TextureAtlasSprite wireSide;
+
+    // 0~5 for insulated open faces, 6 for insulated cable sides because fuck me
     private final TextureAtlasSprite[] insulationTextures = new TextureAtlasSprite[6];
-    private TextureAtlasSprite wireTexture;
+
+    private final EnumMap<Insulation, TextureAtlasSprite> dynamicWires = new EnumMap<>(Insulation.class);
 
     private CableRenderer() {
         super("gt_cable", new ResourceLocation(GTValues.MODID, "cable"));
     }
 
+
     @Override
-    public void registerIcons(TextureMap map) {
-        ResourceLocation wireLocation = new ResourceLocation(GTValues.MODID, "blocks/cable/wire");
-        this.wireTexture = map.registerSprite(wireLocation);
+    protected void registerPipeTextures(TextureMap map) {
+        this.wireSide = texture(map, GTValues.MODID, "blocks/cable/wire");
         for (int i = 0; i < insulationTextures.length; i++) {
-            ResourceLocation location = new ResourceLocation(GTValues.MODID, "blocks/cable/insulation_" + i);
-            this.insulationTextures[i] = map.registerSprite(location);
+            this.insulationTextures[i] = texture(map, GTValues.MODID, "blocks/cable/insulation_" + i);
+        }
+        for (Insulation insulation : Insulation.values()) {
+            String textureName = insulation.insulationLevel >= 0 ? "insulation_" + insulation.insulationLevel : insulation.name;
+            this.dynamicWires.put(insulation, optionalTexture(map, GTValues.MODID, "blocks/cable/dynamic/" + textureName));
         }
     }
 
     @Override
-    public void buildRenderer(PipeRenderContext renderContext, BlockPipe<?, ?, ?> blockPipe, IPipeTile<?, ?> pipeTile, IPipeType<?> pipeType, @Nullable Material material) {
-        if (material == null || !(pipeType instanceof Insulation)) {
+    protected void buildPipelines(PipeRenderContext context, CachedPipeline openFace, CachedPipeline side) {
+        if (context.getMaterial() == null || !(context.getPipeType() instanceof Insulation)) {
             return;
         }
 
-        int insulationLevel = ((Insulation) pipeType).insulationLevel;
-        IVertexOperation wireRender = new IconTransformation(wireTexture);
-        ColourMultiplier wireColor = new ColourMultiplier(GTUtility.convertRGBtoOpaqueRGBA_CL(material.getMaterialRGB()));
+        Insulation insulation = (Insulation) context.getPipeType();
+        ColourMultiplier wireColor = new ColourMultiplier(GTUtility.convertRGBtoOpaqueRGBA_CL(context.getMaterial().getMaterialRGB()));
         ColourMultiplier insulationColor = new ColourMultiplier(GTUtility.convertRGBtoOpaqueRGBA_CL(0x404040));
-        if (pipeTile != null) {
-            if (pipeTile.getPaintingColor() != pipeTile.getDefaultPaintingColor()) {
-                wireColor.colour = GTUtility.convertRGBtoOpaqueRGBA_CL(pipeTile.getPaintingColor());
+        if (context.getPipeTile() != null) {
+            if (context.getPipeTile().getPaintingColor() != context.getPipeTile().getDefaultPaintingColor()) {
+                wireColor.colour = GTUtility.convertRGBtoOpaqueRGBA_CL(context.getPipeTile().getPaintingColor());
             }
-            insulationColor.colour = GTUtility.convertRGBtoOpaqueRGBA_CL(pipeTile.getPaintingColor());
+            insulationColor.colour = GTUtility.convertRGBtoOpaqueRGBA_CL(context.getPipeTile().getPaintingColor());
         }
 
-        if (insulationLevel != -1) {
-
-            if ((renderContext.getConnections() & 63) == 0) {
+        if (insulation.insulationLevel != -1) {
+            if ((context.getConnections() & 0b111111) == 0) {
                 // render only insulation when cable has no connections
-                renderContext.addOpenFaceRender(false, new IconTransformation(insulationTextures[5]), insulationColor);
-                return;
+                openFace.addSprite(false, this.insulationTextures[5], insulationColor);
+            } else {
+                openFace.addSprite(false, wireSide, wireColor);
+                openFace.addSprite(false, insulationTextures[insulation.insulationLevel], insulationColor);
+                side.addSideSprite(false, dynamicWires.get(insulation), insulationTextures[5], insulationColor);
             }
-
-            renderContext.addOpenFaceRender(false, wireRender, wireColor)
-                    .addOpenFaceRender(false, new IconTransformation(insulationTextures[insulationLevel]), insulationColor)
-                    .addSideRender(false, new IconTransformation(insulationTextures[5]), insulationColor);
         } else {
-            renderContext.addOpenFaceRender(false, wireRender, wireColor)
-                    .addSideRender(false, wireRender, wireColor);
+            openFace.addSprite(false, wireSide, wireColor);
+            side.addSideSprite(false, dynamicWires.get(insulation), wireSide, wireColor);
         }
     }
 
@@ -80,25 +83,18 @@ public class CableRenderer extends PipeRenderer {
 
     @Override
     public Pair<TextureAtlasSprite, Integer> getParticleTexture(IPipeTile<?, ?> pipeTile) {
-        if (pipeTile == null) {
-            return Pair.of(TextureUtils.getMissingSprite(), 0xFFFFFF);
+        if (pipeTile != null) {
+            IPipeType<?> pipeType = pipeTile.getPipeType();
+            if (pipeType instanceof Insulation) {
+                if (((Insulation) pipeType).insulationLevel == -1) {
+                    Material material = pipeTile instanceof TileEntityMaterialPipeBase ?
+                            ((TileEntityMaterialPipeBase<?, ?>) pipeTile).getPipeMaterial() : null;
+                    return Pair.of(wireSide, material == null ? 0xFFFFFF : material.getMaterialRGB());
+                } else {
+                    return Pair.of(insulationTextures[5], pipeTile.getPaintingColor());
+                }
+            }
         }
-        IPipeType<?> pipeType = pipeTile.getPipeType();
-        if (!(pipeType instanceof Insulation)) {
-            return Pair.of(TextureUtils.getMissingSprite(), 0xFFFFFF);
-        }
-        Material material = pipeTile instanceof TileEntityMaterialPipeBase ? ((TileEntityMaterialPipeBase<?, ?>) pipeTile).getPipeMaterial() : null;
-
-        TextureAtlasSprite atlasSprite;
-        int particleColor;
-        int insulationLevel = ((Insulation) pipeType).insulationLevel;
-        if (insulationLevel == -1) {
-            atlasSprite = wireTexture;
-            particleColor = material == null ? 0xFFFFFF : material.getMaterialRGB();
-        } else {
-            atlasSprite = insulationTextures[5];
-            particleColor = pipeTile.getPaintingColor();
-        }
-        return Pair.of(atlasSprite, particleColor);
+        return Pair.of(TextureUtils.getMissingSprite(), 0xFFFFFF);
     }
 }

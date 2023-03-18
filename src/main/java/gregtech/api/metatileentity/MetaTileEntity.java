@@ -635,13 +635,6 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
         return true;
     }
 
-    /**
-     * @return the cover plate thickness. It is used to render cover's base plate
-     * if this meta tile entity is not full block length, and also
-     * to check whatever cover placement is possible on specified side,
-     * because cover cannot be placed if collision boxes of machine and it's plate overlap
-     * If zero, it is expected that machine is full block and plate doesn't need to be rendered
-     */
     @Override
     public double getCoverPlateThickness() {
         return 0.0;

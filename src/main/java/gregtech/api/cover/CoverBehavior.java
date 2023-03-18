@@ -208,6 +208,10 @@ public abstract class CoverBehavior implements IUIHolder {
         }
     }
 
+    public double getCoverPlateThickness(EnumFacing side, double coverPlateThickness) {
+        return coverPlateThickness;
+    }
+
     @SideOnly(Side.CLIENT)
     protected TextureAtlasSprite getPlateSprite() {
         return Textures.VOLTAGE_CASINGS[GTValues.LV].getSpriteOnSide(RenderSide.SIDE);

@@ -71,4 +71,44 @@ public enum Insulation implements IMaterialPipeType<WireProperties> {
     public boolean isPaintable() {
         return true;
     }
+
+    /**
+     * @return Non-insulated variation of this enum value; {@code this} if this instance is already non-insulated.
+     */
+    public Insulation nonInsulated(){
+        switch (this) {
+            case CABLE_SINGLE:
+                return Insulation.WIRE_SINGLE;
+            case CABLE_DOUBLE:
+                return Insulation.WIRE_DOUBLE;
+            case CABLE_QUADRUPLE:
+                return Insulation.WIRE_QUADRUPLE;
+            case CABLE_OCTAL:
+                return Insulation.WIRE_OCTAL;
+            case CABLE_HEX:
+                return Insulation.WIRE_HEX;
+            default:
+                return this;
+        }
+    }
+
+    /**
+     * @return Non-insulated variation of this enum value; {@code this} if this instance is already non-insulated.
+     */
+    public Insulation insulated(){
+        switch (this) {
+            case WIRE_SINGLE:
+                return Insulation.CABLE_SINGLE;
+            case WIRE_DOUBLE:
+                return Insulation.CABLE_DOUBLE;
+            case WIRE_QUADRUPLE:
+                return Insulation.CABLE_QUADRUPLE;
+            case WIRE_OCTAL:
+                return Insulation.CABLE_OCTAL;
+            case WIRE_HEX:
+                return Insulation.CABLE_HEX;
+            default:
+                return this;
+        }
+    }
 }
