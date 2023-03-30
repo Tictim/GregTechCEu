@@ -16,6 +16,7 @@ import gregtech.api.pipenet.IBlockAppearance;
 import gregtech.api.pipenet.PipeNet;
 import gregtech.api.pipenet.WorldPipeNet;
 import gregtech.api.pipenet.tile.IPipeTile;
+import gregtech.api.pipenet.tile.PipeCoverableImplementation;
 import gregtech.api.pipenet.tile.TileEntityPipeBase;
 import gregtech.api.unification.material.Material;
 import gregtech.api.util.GTUtility;
@@ -465,7 +466,15 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
         // This iterator causes some heap memory overhead
         IPipeTile<PipeType, NodeDataType> pipeTile = getPipeTileEntity(worldIn, pos);
         if (pipeTile != null && pipeTile.getFrameMaterial() != null) {
-            AxisAlignedBB box = BlockFrame.COLLISION_BOX.offset(pos);
+            PipeCoverableImplementation coverable = pipeTile.getCoverableImplementation();
+
+            int coverFlags = 0;
+            for (EnumFacing side : EnumFacing.HORIZONTALS) {
+                if (coverable.getCoverAtSide(side) == null)
+                    coverFlags |= 1 << side.getHorizontalIndex(); // only sides without any cover should be climbable
+            }
+
+            AxisAlignedBB box = BlockFrame.getCollisionBox(coverFlags).offset(pos);
             if (box.intersects(entityBox)) {
                 collidingBoxes.add(box);
             }

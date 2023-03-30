@@ -46,7 +46,36 @@ import javax.annotation.Nullable;
 
 public final class BlockFrame extends DelayedStateBlock {
 
-    public static final AxisAlignedBB COLLISION_BOX = new AxisAlignedBB(0.05, 0.0, 0.05, 0.95, 1.0, 0.95);
+    private static final AxisAlignedBB[] COLLISION_BOXES = new AxisAlignedBB[16];
+
+    public static AxisAlignedBB getCollisionBox() {
+        return getCollisionBox(0b1111);
+    }
+
+    /**
+     * Get collision box for the frame.
+     *
+     * @param sideClimbableMask A flag set denoting which side of the frame can be climbed.
+     *                          For each horizontal facings, a value of {@code 1} at the
+     *                          position of corresponding horizontal index indicates the
+     *                          side is climbable.
+     * @return Collision box
+     */
+    public static AxisAlignedBB getCollisionBox(int sideClimbableMask) {
+        sideClimbableMask &= 0b1111;
+        AxisAlignedBB box = COLLISION_BOXES[sideClimbableMask];
+        if (box == null) {
+            return COLLISION_BOXES[sideClimbableMask] =
+                    new AxisAlignedBB(
+                            (sideClimbableMask & 2) != 0 ? 0.05 : 0, // west
+                            0.0,
+                            (sideClimbableMask & 4) != 0 ? 0.05 : 0, // north
+                            (sideClimbableMask & 8) != 0 ? 0.95 : 1, // east
+                            1.0,
+                            (sideClimbableMask & 1) != 0 ? 0.95 : 1); // south
+        }
+        return box;
+    }
 
     public final PropertyMaterial variantProperty;
 
@@ -286,7 +315,7 @@ public final class BlockFrame extends DelayedStateBlock {
     @Override
     @SuppressWarnings("deprecation")
     public AxisAlignedBB getCollisionBoundingBox(@Nonnull IBlockState blockState, @Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos) {
-        return COLLISION_BOX;
+        return getCollisionBox();
     }
 
     @Nonnull
