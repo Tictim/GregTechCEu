@@ -15,9 +15,12 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.ModelBakeEvent;
 import net.minecraftforge.client.event.TextureStitchEvent;
 import net.minecraftforge.client.model.IModel;
+import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.client.model.ModelLoaderRegistry;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.relauncher.ReflectionHelper;
 import net.minecraftforge.fml.relauncher.Side;
 
 import java.util.Map;
@@ -70,14 +73,28 @@ public class MaterialBlockModelLoader {
         UNBAKED_MODEL_CACHE.put(modelId, model);
     }
 
+    @SuppressWarnings("deprecation")
     @SubscribeEvent
     public static void onModelBake(ModelBakeEvent event) {
+        boolean ctm = Loader.isModLoaded(GTValues.MODID_CTM);
+        Map<ModelResourceLocation, IModel> stateModels;
+        if (ctm) {
+            stateModels = ReflectionHelper.getPrivateValue(
+                    ModelLoader.class, event.getModelLoader(), "stateModels", null);
+        } else {
+            stateModels = null;
+        }
+
         for (Map.Entry<ModelResourceLocation, IModel> e : UNBAKED_MODEL_CACHE.entrySet()) {
             IBakedModel baked = e.getValue().bake(
                     e.getValue().getDefaultState(),
                     DefaultVertexFormats.ITEM,
                     t -> Minecraft.getMinecraft().getTextureMapBlocks().getAtlasSprite(t.toString()));
             event.getModelRegistry().putObject(e.getKey(), baked);
+
+            if (ctm) { // CTM needs the model to be present on this field to properly replace the model
+                stateModels.put(e.getKey(), e.getValue());
+            }
         }
         UNBAKED_MODEL_CACHE.clear();
     }

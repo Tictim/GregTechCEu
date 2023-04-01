@@ -20,7 +20,6 @@ import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.ITickable;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.capabilities.Capability;
@@ -273,7 +272,7 @@ public abstract class TileEntityPipeBase<PipeType extends Enum<PipeType> & IPipe
             } else {
                 tipVisible = false;
             }
-            if (!coverAtSide && shouldFrameSideBeRendered(world, pos, facing)) {
+            if (!coverAtSide && BlockFrame.shouldFrameSideBeRendered(world, pos, facing)) {
                 connections |= 1 << (facing.getIndex() + 18);
                 if (tipVisible) {
                     connections |= 1 << (facing.getIndex() + 24);
@@ -281,28 +280,6 @@ public abstract class TileEntityPipeBase<PipeType extends Enum<PipeType> & IPipe
             }
         }
         return connections;
-    }
-
-    protected boolean shouldFrameSideBeRendered(IBlockAccess world, BlockPos pos, EnumFacing side) {
-        if (frameMaterial == null) {
-            return false;
-        }
-        BlockPos offset = pos.offset(side);
-        IBlockState sideState = world.getBlockState(offset);
-        if (sideState.getBlock() instanceof BlockFrame) {
-            Material frameMaterial = sideState.getValue(((BlockFrame) sideState.getBlock()).variantProperty);
-            return frameMaterial != this.frameMaterial;
-        } else if (sideState.getBlock() instanceof BlockPipe) {
-            TileEntity te = world.getTileEntity(offset);
-            if (te instanceof IPipeTile) {
-                IPipeTile<?, ?> pipe = (IPipeTile<?, ?>) te;
-                if (pipe.getFrameMaterial() == this.frameMaterial ||
-                        pipe.getCoverableImplementation().getCoverAtSide(side.getOpposite()) != null) {
-                    return false;
-                }
-            }
-        }
-        return !sideState.doesSideBlockRendering(world, offset, side.getOpposite());
     }
 
     @Override

@@ -263,8 +263,7 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
      * Can be used to update tile entity to tickable when node becomes active
      * usable for fluid pipes, as example
      */
-    protected void onActiveModeChange(World world, BlockPos pos, boolean isActiveNow, boolean isInitialChange) {
-    }
+    protected void onActiveModeChange(World world, BlockPos pos, boolean isActiveNow, boolean isInitialChange) {}
 
     @Nonnull
     @Override
@@ -624,18 +623,18 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
 
     @Nonnull
     @Override
-    public IBlockState getFacade(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nullable EnumFacing side, @Nonnull BlockPos otherPos) {
-        return getFacade(world, pos, side);
-    }
-
-    @Nonnull
-    @Override
-    public IBlockState getFacade(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, EnumFacing side) {
-        IPipeTile<?, ?> pipeTileEntity = getPipeTileEntity(world, pos);
-        if (pipeTileEntity != null && side != null) {
-            CoverBehavior coverBehavior = pipeTileEntity.getCoverableImplementation().getCoverAtSide(side);
-            if (coverBehavior instanceof IFacadeCover) {
-                return ((IFacadeCover) coverBehavior).getVisualState();
+    public IBlockState getFacade(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nullable EnumFacing side) {
+        IPipeTile<?, ?> pipeTile = getPipeTileEntity(world, pos);
+        if (pipeTile != null) {
+            if (side != null) {
+                CoverBehavior coverBehavior = pipeTile.getCoverableImplementation().getCoverAtSide(side);
+                if (coverBehavior instanceof IFacadeCover) {
+                    return ((IFacadeCover) coverBehavior).getVisualState();
+                }
+            }
+            Material frameMaterial = pipeTile.getFrameMaterial();
+            if (frameMaterial != null) {
+                return MetaBlocks.FRAMES.get(frameMaterial).getBlock(frameMaterial);
             }
         }
         return world.getBlockState(pos);

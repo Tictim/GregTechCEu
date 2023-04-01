@@ -48,6 +48,7 @@ public final class BlockFrame extends DelayedStateBlock {
 
     private static final AxisAlignedBB[] COLLISION_BOXES = new AxisAlignedBB[16];
 
+    @Nonnull
     public static AxisAlignedBB getCollisionBox() {
         return getCollisionBox(0b1111);
     }
@@ -61,6 +62,7 @@ public final class BlockFrame extends DelayedStateBlock {
      *                          side is climbable.
      * @return Collision box
      */
+    @Nonnull
     public static AxisAlignedBB getCollisionBox(int sideClimbableMask) {
         sideClimbableMask &= 0b1111;
         AxisAlignedBB box = COLLISION_BOXES[sideClimbableMask];
@@ -346,14 +348,19 @@ public final class BlockFrame extends DelayedStateBlock {
     @Override
     @SuppressWarnings("deprecation")
     public boolean shouldSideBeRendered(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) {
+        return shouldFrameSideBeRendered(world, pos, side);
+    }
+
+    public static boolean shouldFrameSideBeRendered(IBlockAccess world, BlockPos pos, EnumFacing side) {
         BlockPos offset = pos.offset(side);
         IBlockState sideState = world.getBlockState(offset);
-        if (sideState == state) return false;
-        if (sideState.getBlock() instanceof BlockPipe) {
+        if (sideState.getBlock() instanceof BlockFrame) {
+            return false;
+        } else if (sideState.getBlock() instanceof BlockPipe) {
             TileEntity te = world.getTileEntity(offset);
             if (te instanceof IPipeTile) {
                 IPipeTile<?, ?> pipe = (IPipeTile<?, ?>) te;
-                if (pipe.getFrameMaterial() == state.getValue(variantProperty) ||
+                if (pipe.getFrameMaterial() != null ||
                         pipe.getCoverableImplementation().getCoverAtSide(side.getOpposite()) != null) {
                     return false;
                 }

@@ -255,9 +255,9 @@ public class BlockMachine extends BlockCustomParticle implements ITileEntityProv
             // Color machines on place if holding spray can in off-hand
             if (placer instanceof EntityPlayer) {
                 ItemStack offhand = placer.getHeldItemOffhand();
-                for (int i  = 0; i < EnumDyeColor.values().length; i++) {
+                for (int i = 0; i < EnumDyeColor.values().length; i++) {
                     if (offhand.isItemEqual(MetaItems.SPRAY_CAN_DYES[i].getStackForm())) {
-                        MetaItems.SPRAY_CAN_DYES[i].getBehaviours().get(0).onItemUse((EntityPlayer) placer, worldIn, pos, EnumHand.OFF_HAND, EnumFacing.UP, 0, 0 , 0);
+                        MetaItems.SPRAY_CAN_DYES[i].getBehaviours().get(0).onItemUse((EntityPlayer) placer, worldIn, pos, EnumHand.OFF_HAND, EnumFacing.UP, 0, 0, 0);
                         break;
                     }
                 }
@@ -448,13 +448,7 @@ public class BlockMachine extends BlockCustomParticle implements ITileEntityProv
 
     @Nonnull
     @Override
-    public IBlockState getFacade(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nullable EnumFacing side, @Nonnull BlockPos otherPos) {
-        return getFacade(world, pos, side);
-    }
-
-    @Nonnull
-    @Override
-    public IBlockState getFacade(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, EnumFacing side) {
+    public IBlockState getFacade(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nullable EnumFacing side) {
         MetaTileEntity metaTileEntity = getMetaTileEntity(world, pos);
         if (metaTileEntity != null && side != null) {
             CoverBehavior coverBehavior = metaTileEntity.getCoverAtSide(side);
@@ -485,7 +479,7 @@ public class BlockMachine extends BlockCustomParticle implements ITileEntityProv
     @Override
     public boolean canEntityDestroy(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Entity entity) {
         MetaTileEntity metaTileEntity = getMetaTileEntity(world, pos);
-        if(metaTileEntity == null) {
+        if (metaTileEntity == null) {
             return super.canEntityDestroy(state, world, pos, entity);
         }
         return !((entity instanceof EntityWither || entity instanceof EntityWitherSkull) && metaTileEntity.getWitherProof());

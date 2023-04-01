@@ -195,7 +195,7 @@ public abstract class PipeRenderer implements ICCBlockRenderer, IItemRenderer, I
                         GTUtility.convertRGBtoOpaqueRGBA_CL(getPipeColor(material, pipeTile.getPaintingColor())),
                         pos, renderState.lightMatrix);
                 renderPipeBlock(renderState, renderContext);
-                renderFrame(pos, pipeTile, renderState, renderContext);
+                renderFrame(world, pos, pipeTile, renderState, renderContext);
             }
 
             pipeTile.getCoverableImplementation().renderCovers(
@@ -207,7 +207,7 @@ public abstract class PipeRenderer implements ICCBlockRenderer, IItemRenderer, I
         return true;
     }
 
-    private void renderFrame(BlockPos pos, IPipeTile<?, ?> pipeTile, CCRenderState renderState, PipeRenderContext context) {
+    private void renderFrame(IBlockAccess world, BlockPos pos, IPipeTile<?, ?> pipeTile, CCRenderState renderState, PipeRenderContext context) {
         Material frameMaterial = pipeTile.getFrameMaterial();
         if (frameMaterial == null) {
             return;
@@ -234,6 +234,11 @@ public abstract class PipeRenderer implements ICCBlockRenderer, IItemRenderer, I
 
         IBlockState state = block.getBlock(frameMaterial);
         IBakedModel model = Minecraft.getMinecraft().getBlockRendererDispatcher().getModelForState(state);
+
+        try {
+            state = state.getActualState(world, pos);
+            state = state.getBlock().getExtendedState(state, world, pos);
+        } catch (Throwable ignored) {}
 
         long posRand = MathHelper.getPositionRandom(pos);
         List<BakedQuad> bakedQuads = new ArrayList<>(model.getQuads(state, null, posRand));

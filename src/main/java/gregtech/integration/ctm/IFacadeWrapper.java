@@ -9,15 +9,18 @@ import net.minecraftforge.fml.common.Optional;
 import team.chisel.ctm.api.IFacade;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 @Optional.Interface(modid = GTValues.MODID_CTM, iface = "team.chisel.ctm.api.IFacade")
 public interface IFacadeWrapper extends IFacade {
 
     @Nonnull
     @Override
-    IBlockState getFacade(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, EnumFacing side);
+    IBlockState getFacade(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nullable EnumFacing side);
 
     @Nonnull
     @Override
-    IBlockState getFacade(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, EnumFacing side, @Nonnull BlockPos connection);
+    default IBlockState getFacade(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nullable EnumFacing side, @Nonnull BlockPos connection) {
+        return getFacade(world, pos, side);
+    }
 }
