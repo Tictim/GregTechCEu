@@ -1,0 +1,8 @@
+{
+  "parent": "gregtech:block/tinted_cube_bottom_top",
+  "textures": {
+    "top": "gregtech:blocks/material_sets/wood/frame/top",
+    "side": "gregtech:blocks/material_sets/wood/frame/side",
+    "bottom": "gregtech:blocks/material_sets/wood/frame/bottom"
+  }
+}

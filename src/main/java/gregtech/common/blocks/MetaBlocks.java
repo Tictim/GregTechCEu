@@ -11,6 +11,7 @@ import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.unification.ore.StoneType;
+import gregtech.api.util.BlockUtility;
 import gregtech.client.model.SimpleStateMapper;
 import gregtech.client.model.modelfactories.BakedModelHandler;
 import gregtech.client.renderer.handler.MetaTileEntityRenderer;
@@ -62,7 +63,6 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static gregtech.api.unification.material.info.MaterialFlags.FORCE_GENERATE_BLOCK;
 import static gregtech.api.unification.material.info.MaterialFlags.GENERATE_FRAME;
@@ -389,7 +389,7 @@ public class MetaBlocks {
             ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block),
                     block.getMetaFromState(state),
                     new ModelResourceLocation(block.getRegistryName(),
-                            statePropertiesToString(state.getProperties())));
+                            BlockUtility.statePropertiesToString(state.getProperties())));
         }
     }
 
@@ -402,7 +402,7 @@ public class MetaBlocks {
             ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block),
                     block.getMetaFromState(state),
                     new ModelResourceLocation(block.getRegistryName(),
-                            statePropertiesToString(stringProperties)));
+                            BlockUtility.statePropertiesToString(stringProperties)));
         }
     }
 
@@ -535,33 +535,11 @@ public class MetaBlocks {
         }
     }
 
+    /**
+     * @deprecated Use {@link gregtech.api.util.BlockUtility#statePropertiesToString(Map)} instead
+     */
+    @Deprecated
     public static String statePropertiesToString(Map<IProperty<?>, Comparable<?>> properties) {
-        StringBuilder stringbuilder = new StringBuilder();
-
-        List<Entry<IProperty<?>, Comparable<?>>> entries = properties.entrySet().stream()
-                .sorted(Comparator.comparing(c -> c.getKey().getName()))
-                .collect(Collectors.toList());
-
-        for (Map.Entry<IProperty<?>, Comparable<?>> entry : entries) {
-            if (stringbuilder.length() != 0) {
-                stringbuilder.append(",");
-            }
-
-            IProperty<?> property = entry.getKey();
-            stringbuilder.append(property.getName());
-            stringbuilder.append("=");
-            stringbuilder.append(getPropertyName(property, entry.getValue()));
-        }
-
-        if (stringbuilder.length() == 0) {
-            stringbuilder.append("normal");
-        }
-
-        return stringbuilder.toString();
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T extends Comparable<T>> String getPropertyName(IProperty<T> property, Comparable<?> value) {
-        return property.getName((T) value);
+        return BlockUtility.statePropertiesToString(properties);
     }
 }

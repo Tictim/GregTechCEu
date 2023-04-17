@@ -7,9 +7,10 @@ import com.google.common.collect.Table;
 import gregtech.api.GTValues;
 import gregtech.api.gui.resources.ResourceHelper;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.client.event.ModelBakeEvent;
+import net.minecraftforge.client.event.TextureStitchEvent;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -106,6 +107,7 @@ public class MaterialIconType {
     private static final Table<MaterialIconType, MaterialIconSet, ResourceLocation> ITEM_MODEL_CACHE = HashBasedTable.create();
     private static final Table<MaterialIconType, MaterialIconSet, ResourceLocation> BLOCK_TEXTURE_CACHE = HashBasedTable.create();
     private static final Table<MaterialIconType, MaterialIconSet, ResourceLocation> BLOCK_MODEL_CACHE = HashBasedTable.create();
+    private static final Table<MaterialIconType, MaterialIconSet, ResourceLocation> BLOCKSTATES_CACHE = HashBasedTable.create();
 
     private static final String BLOCK_TEXTURE_PATH_FULL = "textures/blocks/material_sets/%s/%s.png";
     private static final String BLOCK_TEXTURE_PATH = "blocks/material_sets/%s/%s";
@@ -115,6 +117,9 @@ public class MaterialIconType {
 
     private static final String BLOCK_MODEL_PATH_FULL = "models/block/material_sets/%s/%s.json";
     private static final String BLOCK_MODEL_PATH = "block/material_sets/%s/%s";
+
+    private static final String BLOCKSTATES_PATH_FULL = "blockstates/material_sets/%s/%s.json";
+    private static final String BLOCKSTATES_PATH = "material_sets/%s/%s";
 
     public final String name;
     public final int id;
@@ -139,6 +144,11 @@ public class MaterialIconType {
     @Nonnull
     public ResourceLocation getBlockModelPath(@Nonnull MaterialIconSet materialIconSet) {
         return recurseIconsetPath(materialIconSet, BLOCK_MODEL_CACHE, BLOCK_MODEL_PATH_FULL, BLOCK_MODEL_PATH);
+    }
+
+    @Nonnull
+    public ResourceLocation getBlockstatesPath(@Nonnull MaterialIconSet materialIconSet) {
+        return recurseIconsetPath(materialIconSet, BLOCKSTATES_CACHE, BLOCKSTATES_PATH_FULL, BLOCKSTATES_PATH);
     }
 
     /**
@@ -180,9 +190,11 @@ public class MaterialIconType {
     }
 
     @SideOnly(Side.CLIENT)
-    @SubscribeEvent
-    public static void onModelBake(ModelBakeEvent event) {
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void beforeTextureStitch(TextureStitchEvent.Pre event) {
         ITEM_MODEL_CACHE.clear();
         BLOCK_TEXTURE_CACHE.clear();
+        BLOCK_MODEL_CACHE.clear();
+        BLOCKSTATES_CACHE.clear();
     }
 }

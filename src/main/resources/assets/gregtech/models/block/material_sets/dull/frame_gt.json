@@ -1,8 +1,153 @@
 {
-  "parent": "gregtech:block/frame",
+  "parent": "block/block",
   "textures": {
-    "side": "gregtech:blocks/material_sets/dull/frame_gt",
-    "top": "gregtech:blocks/material_sets/dull/frame_gt",
-    "bottom": "gregtech:blocks/material_sets/dull/frame_gt"
-  }
+    "particle": "gregtech:blocks/material_sets/dull/frame_gt",
+    "texture": "gregtech:blocks/material_sets/dull/frame_gt"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        1,
+        16
+      ],
+      "faces": {
+        "down": {
+          "texture": "#texture",
+          "cullface": "down",
+          "tintindex": 1
+        },
+        "up": {
+          "texture": "#texture",
+          "cullface": "down",
+          "tintindex": 2
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        15,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "up": {
+          "texture": "#texture",
+          "cullface": "up",
+          "tintindex": 1
+        },
+        "down": {
+          "texture": "#texture",
+          "cullface": "up",
+          "tintindex": 2
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        1
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture",
+          "cullface": "north",
+          "tintindex": 1
+        },
+        "south": {
+          "texture": "#texture",
+          "cullface": "north",
+          "tintindex": 2
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        0,
+        15
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "south": {
+          "texture": "#texture",
+          "cullface": "south",
+          "tintindex": 1
+        },
+        "north": {
+          "texture": "#texture",
+          "cullface": "south",
+          "tintindex": 2
+        }
+      }
+    },
+    {
+      "from": [
+        15,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "east": {
+          "texture": "#texture",
+          "cullface": "east",
+          "tintindex": 1
+        },
+        "west": {
+          "texture": "#texture",
+          "cullface": "east",
+          "tintindex": 2
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        1,
+        16,
+        16
+      ],
+      "faces": {
+        "west": {
+          "texture": "#texture",
+          "cullface": "west",
+          "tintindex": 1
+        },
+        "east": {
+          "texture": "#texture",
+          "cullface": "west",
+          "tintindex": 2
+        }
+      }
+    }
+  ]
 }

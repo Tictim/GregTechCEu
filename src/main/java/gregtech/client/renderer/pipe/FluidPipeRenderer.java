@@ -2,8 +2,8 @@ package gregtech.client.renderer.pipe;
 
 import gregtech.api.GTValues;
 import gregtech.api.pipenet.block.IPipeType;
+import gregtech.api.recipes.ModHandler;
 import gregtech.api.unification.material.Material;
-import gregtech.api.unification.material.info.MaterialIconSet;
 import gregtech.common.pipelike.fluidpipe.FluidPipeType;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureMap;
@@ -56,7 +56,7 @@ public class FluidPipeRenderer extends PipeRenderer {
     protected void buildPipelines(PipeRenderContext context, CachedPipeline openFace, CachedPipeline side) {
         IPipeType<?> pipeType = context.getPipeType();
         if (pipeType instanceof FluidPipeType) {
-            if (context.getMaterial() != null && isWood(context.getMaterial())) {
+            if (ModHandler.isMaterialWood(context.getMaterial())) {
                 TextureAtlasSprite sprite = openFacesWood.get(pipeType);
                 openFace.addSprite(sprite != null ? sprite : openFaces.get(pipeType));
                 side.addSideSprite(dynamicPipesWood.get(pipeType), pipeSideWood);
@@ -69,13 +69,6 @@ public class FluidPipeRenderer extends PipeRenderer {
 
     @Override
     public TextureAtlasSprite getParticleTexture(IPipeType<?> pipeType, @Nullable Material material) {
-        return material != null && isWood(material) ? pipeSideWood : pipeSide;
-    }
-
-    private static boolean isWood(Material material) {
-        for (MaterialIconSet s = material.getMaterialIconSet(); !s.isRootIconset; s = s.parentIconset) {
-            if (s == MaterialIconSet.WOOD) return true;
-        }
-        return false;
+        return ModHandler.isMaterialWood(material) ? pipeSideWood : pipeSide;
     }
 }

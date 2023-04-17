@@ -11,18 +11,20 @@ import gregtech.api.pipenet.tile.TileEntityPipeBase;
 import gregtech.api.recipes.ModHandler;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
+import gregtech.api.unification.material.info.MaterialIconSet;
 import gregtech.api.unification.material.info.MaterialIconType;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
-import gregtech.client.model.MaterialStateMapper;
 import gregtech.client.model.modelfactories.MaterialBlockModelLoader;
 import gregtech.common.blocks.properties.PropertyMaterial;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.EnumPushReaction;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving.SpawnPlacementType;
@@ -43,9 +45,11 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Map;
 
 public final class BlockFrame extends DelayedStateBlock {
 
+    private static final double CLIMBABLE_HITBOX_OFFSET = 1.0 / 16;
     private static final AxisAlignedBB[] COLLISION_BOXES = new AxisAlignedBB[16];
 
     @Nonnull
@@ -69,12 +73,12 @@ public final class BlockFrame extends DelayedStateBlock {
         if (box == null) {
             return COLLISION_BOXES[sideClimbableMask] =
                     new AxisAlignedBB(
-                            (sideClimbableMask & 2) != 0 ? 0.05 : 0, // west
+                            (sideClimbableMask & 2) != 0 ? CLIMBABLE_HITBOX_OFFSET : 0, // west
                             0.0,
-                            (sideClimbableMask & 4) != 0 ? 0.05 : 0, // north
-                            (sideClimbableMask & 8) != 0 ? 0.95 : 1, // east
+                            (sideClimbableMask & 4) != 0 ? CLIMBABLE_HITBOX_OFFSET : 0, // north
+                            (sideClimbableMask & 8) != 0 ? 1 - CLIMBABLE_HITBOX_OFFSET : 1, // east
                             1.0,
-                            (sideClimbableMask & 1) != 0 ? 0.95 : 1); // south
+                            (sideClimbableMask & 1) != 0 ? 1 - CLIMBABLE_HITBOX_OFFSET : 1); // south
         }
         return box;
     }
@@ -164,15 +168,11 @@ public final class BlockFrame extends DelayedStateBlock {
     public void getSubBlocks(@Nonnull CreativeTabs tab, @Nonnull NonNullList<ItemStack> list) {
         blockState.getValidStates().stream()
                 .filter(blockState -> blockState.getValue(variantProperty) != Materials.NULL)
-                .forEach(blockState -> list.add(getItem(blockState)));
-    }
-
-    public static ItemStack getItem(IBlockState blockState) {
-        return GTUtility.toItem(blockState);
+                .forEach(blockState -> list.add(GTUtility.toItem(blockState)));
     }
 
     public ItemStack getItem(Material material) {
-        return getItem(getDefaultState().withProperty(variantProperty, material));
+        return GTUtility.toItem(getDefaultState().withProperty(variantProperty, material));
     }
 
     public IBlockState getBlock(Material material) {
@@ -222,7 +222,6 @@ public final class BlockFrame extends DelayedStateBlock {
             ToolHelper.damageItem(stack, player);
             ToolHelper.playToolSound(stack, player);
             return true;
-
         }
         return false;
     }
@@ -348,36 +347,55 @@ public final class BlockFrame extends DelayedStateBlock {
     @Override
     @SuppressWarnings("deprecation")
     public boolean shouldSideBeRendered(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) {
-        return shouldFrameSideBeRendered(world, pos, side);
+        return shouldFrameSideBeRendered(state.getValue(this.variantProperty), world, pos, side);
     }
 
-    public static boolean shouldFrameSideBeRendered(IBlockAccess world, BlockPos pos, EnumFacing side) {
+    public static boolean shouldFrameSideBeRendered(Material frameMaterial, IBlockAccess world, BlockPos pos, EnumFacing side) {
         BlockPos offset = pos.offset(side);
         IBlockState sideState = world.getBlockState(offset);
-        if (sideState.getBlock() instanceof BlockFrame) {
-            return false;
-        } else if (sideState.getBlock() instanceof BlockPipe) {
-            TileEntity te = world.getTileEntity(offset);
-            if (te instanceof IPipeTile) {
-                IPipeTile<?, ?> pipe = (IPipeTile<?, ?>) te;
-                if (pipe.getFrameMaterial() != null ||
-                        pipe.getCoverableImplementation().getCoverAtSide(side.getOpposite()) != null) {
-                    return false;
-                }
+        Material frameMaterialAt = getFrameMaterialAt(world, sideState, offset);
+        if (frameMaterialAt != null) {
+            MaterialIconSet icon1 = frameMaterial.getMaterialIconSet();
+            MaterialIconSet icon2 = frameMaterialAt.getMaterialIconSet();
+            if (icon1 == icon2 || MaterialIconType.frameGt.getBlockstatesPath(icon1) == MaterialIconType.frameGt.getBlockstatesPath(icon2)) {
+                return false;
             }
         }
         return !sideState.doesSideBlockRendering(world, offset, side.getOpposite());
     }
 
+    @Nullable
+    public static Material getFrameMaterialAt(IBlockAccess world, BlockPos pos) {
+        return getFrameMaterialAt(world, world.getBlockState(pos), pos);
+    }
+
+    @Nullable
+    public static Material getFrameMaterialAt(IBlockAccess world, IBlockState state, BlockPos pos) {
+        if (state.getBlock() instanceof BlockFrame) {
+            return state.getValue(((BlockFrame) state.getBlock()).variantProperty);
+        } else if (state.getBlock() instanceof BlockPipe) {
+            TileEntity te = world.getTileEntity(pos);
+            if (te instanceof IPipeTile) {
+                return ((IPipeTile<?, ?>) te).getFrameMaterial();
+            }
+        }
+        return null;
+    }
+
     @SideOnly(Side.CLIENT)
     public void onModelRegister() {
-        ModelLoader.setCustomStateMapper(this, new MaterialStateMapper(
-                MaterialIconType.frameGt, s -> s.getValue(this.variantProperty).getMaterialIconSet()));
+        Map<IBlockState, ModelResourceLocation> map = new Object2ObjectOpenHashMap<>();
         for (IBlockState state : this.getBlockState().getValidStates()) {
-            ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(this), this.getMetaFromState(state),
-                    MaterialBlockModelLoader.registerItemModel(
-                            MaterialIconType.frameGt,
-                            state.getValue(this.variantProperty).getMaterialIconSet()));
+            MaterialBlockModelLoader.Entry entry = new MaterialBlockModelLoader.EntryBuilder(
+                    MaterialIconType.frameGt,
+                    state.getValue(this.variantProperty).getMaterialIconSet())
+                    .register();
+            map.put(state, entry.getBlockModelId());
+
+            ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(this),
+                    this.getMetaFromState(state),
+                    entry.getItemModelId());
         }
+        ModelLoader.setCustomStateMapper(this, b -> map);
     }
 }

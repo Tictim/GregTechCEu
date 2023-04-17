@@ -272,7 +272,8 @@ public abstract class TileEntityPipeBase<PipeType extends Enum<PipeType> & IPipe
             } else {
                 tipVisible = false;
             }
-            if (!coverAtSide && BlockFrame.shouldFrameSideBeRendered(world, pos, facing)) {
+
+            if (frameMaterial!=null&& !coverAtSide && BlockFrame.shouldFrameSideBeRendered(frameMaterial, world, pos, facing)) {
                 connections |= 1 << (facing.getIndex() + 18);
                 if (tipVisible) {
                     connections |= 1 << (facing.getIndex() + 24);

@@ -8,13 +8,14 @@ import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.material.info.MaterialIconType;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.util.GTUtility;
-import gregtech.client.model.MaterialStateMapper;
 import gregtech.client.model.modelfactories.MaterialBlockModelLoader;
 import gregtech.common.blocks.properties.PropertyMaterial;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.Item;
@@ -29,6 +30,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Map;
 
 public final class BlockCompressed extends DelayedStateBlock {
 
@@ -150,13 +152,18 @@ public final class BlockCompressed extends DelayedStateBlock {
 
     @SideOnly(Side.CLIENT)
     public void onModelRegister() {
-        ModelLoader.setCustomStateMapper(this, new MaterialStateMapper(
-                MaterialIconType.block, s -> s.getValue(this.variantProperty).getMaterialIconSet()));
+        Map<IBlockState, ModelResourceLocation> map = new Object2ObjectOpenHashMap<>();
         for (IBlockState state : this.getBlockState().getValidStates()) {
-            ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(this), this.getMetaFromState(state),
-                    MaterialBlockModelLoader.registerItemModel(
-                            MaterialIconType.block,
-                            state.getValue(this.variantProperty).getMaterialIconSet()));
+            MaterialBlockModelLoader.Entry entry = new MaterialBlockModelLoader.EntryBuilder(
+                    MaterialIconType.block,
+                    state.getValue(this.variantProperty).getMaterialIconSet())
+                    .register();
+            map.put(state, entry.getBlockModelId());
+
+            ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(this),
+                    this.getMetaFromState(state),
+                    entry.getItemModelId());
         }
+        ModelLoader.setCustomStateMapper(this, b -> map);
     }
 }
