@@ -1,0 +1,10 @@
+{
+    "ctm": {
+        "ctm_version": 1,
+        "type": "frame_gt",
+        "layer": "CUTOUT",
+        "textures": [
+            "gregtech:blocks/material_sets/wood/frame/top_ctm"
+        ]
+    }
+}

@@ -1,19 +1,21 @@
 {
   "parent": "block/block",
   "textures": {
-    "particle": "#side"
+    "particle": "gregtech:blocks/material_sets/wood/frame/side",
+    "side": "gregtech:blocks/material_sets/wood/frame/side",
+    "bottom": "gregtech:blocks/material_sets/wood/frame/bottom",
+    "top": "gregtech:blocks/material_sets/wood/frame/top"
   },
   "elements": [
     {
       "from": [ 0, 0, 0 ],
-      "to": [ 16, 1, 16 ],
+      "to": [ 16, 0, 16 ],
       "faces": {
-        "up": { "uv": [ 0, 16, 16, 0 ], "texture": "#bottom", "cullface": "down", "tintindex": 2 },
         "down": { "uv": [ 0, 0, 16, 16 ], "texture": "#bottom", "cullface": "down", "tintindex": 1 }
       }
     },
     {
-      "from": [ 0, 15, 0 ],
+      "from": [ 0, 14, 0 ],
       "to": [ 16, 16, 16 ],
       "faces": {
         "up": { "uv": [ 0, 0, 16, 16 ], "texture": "#top", "cullface": "up", "tintindex": 1 },
@@ -22,7 +24,7 @@
     },
     {
       "from": [ 0, 0, 0 ],
-      "to": [ 1, 16, 16 ],
+      "to": [ 4, 16, 16 ],
       "faces": {
         "east": { "uv": [ 16, 0, 0, 16 ], "texture": "#side", "cullface": "west", "tintindex": 2 },
         "west": { "uv": [ 0, 0, 16, 16 ], "texture": "#side", "cullface": "west", "tintindex": 1 }
@@ -30,14 +32,14 @@
     },
     {
       "from": [ 0, 0, 0 ],
-      "to": [ 16, 16, 1 ],
+      "to": [ 16, 16, 4 ],
       "faces": {
         "north": { "uv": [ 0, 0, 16, 16 ], "texture": "#side", "cullface": "north", "tintindex": 1 },
         "south": { "uv": [ 16, 0, 0, 16 ], "texture": "#side", "cullface": "north", "tintindex": 2 }
       }
     },
     {
-      "from": [ 15, 0, 0 ],
+      "from": [ 12, 0, 0 ],
       "to": [ 16, 16, 16 ],
       "faces": {
         "east": { "uv": [ 0, 0, 16, 16 ], "texture": "#side", "cullface": "east", "tintindex": 1 },
@@ -45,7 +47,7 @@
       }
     },
     {
-      "from": [ 0, 0, 15 ],
+      "from": [ 0, 0, 12 ],
       "to": [ 16, 16, 16 ],
       "faces": {
         "north": { "uv": [ 16, 0, 0, 16 ], "texture": "#side", "cullface": "south", "tintindex": 2 },
