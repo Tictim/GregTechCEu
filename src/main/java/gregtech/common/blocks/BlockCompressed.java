@@ -8,6 +8,7 @@ import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.material.info.MaterialIconType;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.util.GTUtility;
+import gregtech.client.model.MaterialStateMapper;
 import gregtech.client.model.modelfactories.MaterialBlockModelLoader;
 import gregtech.common.blocks.properties.PropertyMaterial;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
@@ -15,7 +16,6 @@ import net.minecraft.block.SoundType;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.Item;
@@ -152,18 +152,20 @@ public final class BlockCompressed extends DelayedStateBlock {
 
     @SideOnly(Side.CLIENT)
     public void onModelRegister() {
-        Map<IBlockState, ModelResourceLocation> map = new Object2ObjectOpenHashMap<>();
+        Map<Material, MaterialBlockModelLoader.Entry> map = new Object2ObjectOpenHashMap<>();
         for (IBlockState state : this.getBlockState().getValidStates()) {
+            Material material = state.getValue(this.variantProperty);
             MaterialBlockModelLoader.Entry entry = new MaterialBlockModelLoader.EntryBuilder(
                     MaterialIconType.block,
-                    state.getValue(this.variantProperty).getMaterialIconSet())
+                    material.getMaterialIconSet())
+                    .setStateProperties("")
                     .register();
-            map.put(state, entry.getBlockModelId());
+            map.put(material, entry);
 
             ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(this),
                     this.getMetaFromState(state),
                     entry.getItemModelId());
         }
-        ModelLoader.setCustomStateMapper(this, b -> map);
+        ModelLoader.setCustomStateMapper(this, new MaterialStateMapper(map, s -> s.getValue(this.variantProperty)));
     }
 }

@@ -1,0 +1,29 @@
+{
+  "textures": {
+    "frame_gt_border": "gregtech:blocks/material_sets/dull/frame_gt_border"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        2,
+        16,
+        2
+      ],
+      "faces": {
+        "south": {
+          "texture": "#frame_gt_border",
+          "tintindex": 2
+        },
+        "east": {
+          "texture": "#frame_gt_border",
+          "tintindex": 2
+        }
+      }
+    }
+  ]
+}

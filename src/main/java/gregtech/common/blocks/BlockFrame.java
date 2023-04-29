@@ -11,11 +11,13 @@ import gregtech.api.pipenet.tile.TileEntityPipeBase;
 import gregtech.api.recipes.ModHandler;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
-import gregtech.api.unification.material.info.MaterialIconSet;
 import gregtech.api.unification.material.info.MaterialIconType;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
+import gregtech.client.model.MaterialStateMapper;
 import gregtech.client.model.modelfactories.MaterialBlockModelLoader;
+import gregtech.common.blocks.extendedstate.ConnectionChecker;
+import gregtech.common.blocks.extendedstate.SimpleConnectionState;
 import gregtech.common.blocks.properties.PropertyMaterial;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.block.Block;
@@ -24,7 +26,6 @@ import net.minecraft.block.material.EnumPushReaction;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving.SpawnPlacementType;
@@ -47,7 +48,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Map;
 
-public final class BlockFrame extends DelayedStateBlock {
+public final class BlockFrame extends DelayedStateBlock implements ConnectionChecker {
 
     private static final double CLIMBABLE_HITBOX_OFFSET = 1.0 / 16;
     private static final AxisAlignedBB[] COLLISION_BOXES = new AxisAlignedBB[16];
@@ -350,27 +351,20 @@ public final class BlockFrame extends DelayedStateBlock {
         return shouldFrameSideBeRendered(state.getValue(this.variantProperty), world, pos, side);
     }
 
-    public static boolean shouldFrameSideBeRendered(Material frameMaterial, IBlockAccess world, BlockPos pos, EnumFacing side) {
+    public static boolean shouldFrameSideBeRendered(@Nonnull Material frameMaterial, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
         BlockPos offset = pos.offset(side);
         IBlockState sideState = world.getBlockState(offset);
         Material frameMaterialAt = getFrameMaterialAt(world, sideState, offset);
-        if (frameMaterialAt != null) {
-            MaterialIconSet icon1 = frameMaterial.getMaterialIconSet();
-            MaterialIconSet icon2 = frameMaterialAt.getMaterialIconSet();
-            if (icon1 == icon2 || MaterialIconType.frameGt.getBlockstatesPath(icon1) == MaterialIconType.frameGt.getBlockstatesPath(icon2)) {
-                return false;
-            }
-        }
-        return !sideState.doesSideBlockRendering(world, offset, side.getOpposite());
+        return frameMaterial != frameMaterialAt && !sideState.doesSideBlockRendering(world, offset, side.getOpposite());
     }
 
     @Nullable
-    public static Material getFrameMaterialAt(IBlockAccess world, BlockPos pos) {
+    public static Material getFrameMaterialAt(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         return getFrameMaterialAt(world, world.getBlockState(pos), pos);
     }
 
     @Nullable
-    public static Material getFrameMaterialAt(IBlockAccess world, IBlockState state, BlockPos pos) {
+    public static Material getFrameMaterialAt(@Nonnull IBlockAccess world, @Nonnull IBlockState state, @Nonnull BlockPos pos) {
         if (state.getBlock() instanceof BlockFrame) {
             return state.getValue(((BlockFrame) state.getBlock()).variantProperty);
         } else if (state.getBlock() instanceof BlockPipe) {
@@ -382,20 +376,40 @@ public final class BlockFrame extends DelayedStateBlock {
         return null;
     }
 
+    @Override
+    @Nonnull
+    public IBlockState getExtendedState(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        // return Loader.isModLoaded(GTValues.MODID_CTM) ?
+        //         new CTMConnectionState(state, world, pos) :
+        //         new SimpleConnectionState(state, world, pos);
+        return new SimpleConnectionState(state, world, pos);
+    }
+
+    @Override
+    public boolean isConnectedToNeighbor(@Nonnull IBlockAccess world,
+                                         @Nonnull IBlockState originState,
+                                         @Nonnull BlockPos origin,
+                                         @Nonnull BlockPos neighbor) {
+        Material material = originState.getValue(this.variantProperty);
+        return material == getFrameMaterialAt(world, neighbor);
+    }
+
     @SideOnly(Side.CLIENT)
     public void onModelRegister() {
-        Map<IBlockState, ModelResourceLocation> map = new Object2ObjectOpenHashMap<>();
+        Map<Material, MaterialBlockModelLoader.Entry> map = new Object2ObjectOpenHashMap<>();
         for (IBlockState state : this.getBlockState().getValidStates()) {
+            Material material = state.getValue(this.variantProperty);
             MaterialBlockModelLoader.Entry entry = new MaterialBlockModelLoader.EntryBuilder(
                     MaterialIconType.frameGt,
-                    state.getValue(this.variantProperty).getMaterialIconSet())
+                    material.getMaterialIconSet())
+                    .setStateProperties("")
                     .register();
-            map.put(state, entry.getBlockModelId());
+            map.put(material, entry);
 
             ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(this),
                     this.getMetaFromState(state),
                     entry.getItemModelId());
         }
-        ModelLoader.setCustomStateMapper(this, b -> map);
+        ModelLoader.setCustomStateMapper(this, new MaterialStateMapper(map, s -> s.getValue(this.variantProperty)));
     }
 }

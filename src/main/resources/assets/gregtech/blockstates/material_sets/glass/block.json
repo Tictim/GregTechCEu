@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "normal": { "model": "gregtech:material_sets/glass/block" }
+  }
+}

@@ -1,7 +1,6 @@
 package gregtech.client.model.lamp;
 
 import gregtech.api.GTValues;
-import gregtech.client.model.BorderlessLampBakedModel;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.util.ResourceLocation;

@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@TextureType("frame_gt")
+@TextureType("gregtech:frame_gt")
 public class FrameTextureType implements ITextureType {
 
     private static final CTMLogic.StateComparisonCallback STATE_COMPARATOR = (instance, from, to, dir) -> to.getBlock() instanceof BlockFrame;

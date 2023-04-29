@@ -64,24 +64,22 @@ public class MaterialBlockModelLoader {
                 null;
 
         for (Entry e : ENTRIES) {
-            if (e.itemModelCache != null) {
-                bakeAndRegister(event.getModelRegistry(), e.itemModelCache, e.getItemModelId(), e.modelFunction, stateModels);
-            }
-            if (e.blockModelCache != null) {
-                bakeAndRegister(event.getModelRegistry(), e.blockModelCache, e.getBlockModelId(), e.modelFunction, stateModels);
-            }
+            bakeAndRegister(event.getModelRegistry(), e.itemModelCache, e.getItemModelId(), e.modelFunction, stateModels);
+            bakeAndRegister(event.getModelRegistry(), e.blockModelCache, e.getBlockModelId(), e.modelFunction, stateModels);
         }
     }
 
     private static void bakeAndRegister(@Nonnull IRegistry<ModelResourceLocation, IBakedModel> registry,
-                                        @Nonnull IModel model,
+                                        @Nullable IModel model,
                                         @Nonnull ModelResourceLocation modelId,
                                         @Nullable UnaryOperator<IBakedModel> modelFunction,
                                         @Nullable Map<ModelResourceLocation, IModel> stateModels) {
-        IBakedModel baked = model.bake(
-                model.getDefaultState(),
-                DefaultVertexFormats.ITEM,
-                t -> Minecraft.getMinecraft().getTextureMapBlocks().getAtlasSprite(t.toString()));
+        if (model == null) {
+            // insert missing model to prevent cluttering logs with useless model loading error messages
+            registry.putObject(modelId, bake(ModelLoaderRegistry.getMissingModel()));
+            return;
+        }
+        IBakedModel baked = bake(model);
         if (modelFunction != null) {
             baked = modelFunction.apply(baked);
             if (baked == null) {
@@ -95,11 +93,17 @@ public class MaterialBlockModelLoader {
         }
     }
 
+    private static IBakedModel bake(IModel model) {
+        return model.bake(
+                model.getDefaultState(),
+                DefaultVertexFormats.ITEM,
+                t -> Minecraft.getMinecraft().getTextureMapBlocks().getAtlasSprite(t.toString()));
+    }
+
     public static final class Entry {
 
         private final MaterialIconType iconType;
         private final MaterialIconSet iconSet;
-        @Nullable
         private final String stateProperties;
         @Nullable
         private final UnaryOperator<IBakedModel> modelFunction;
@@ -120,17 +124,15 @@ public class MaterialBlockModelLoader {
                       @Nullable UnaryOperator<IBakedModel> modelFunction) {
             this.iconType = iconType;
             this.iconSet = iconSet;
-            this.stateProperties = stateProperties;
+            this.stateProperties = stateProperties == null ? "" : stateProperties;
             this.modelFunction = modelFunction;
         }
 
-        ResourceLocation getBlockModelLocation() {
-            return this.stateProperties != null ?
-                    new ModelResourceLocation(iconType.getBlockstatesPath(iconSet), this.stateProperties) :
-                    iconType.getBlockModelPath(iconSet);
+        public ModelResourceLocation getBlockModelLocation() {
+            return new ModelResourceLocation(iconType.getBlockstatesPath(iconSet), this.stateProperties);
         }
 
-        ResourceLocation getItemModelLocation() {
+        public ResourceLocation getItemModelLocation() {
             ResourceLocation itemModelPath = iconType.getItemModelPath(iconSet);
             return new ResourceLocation(itemModelPath.getNamespace(), "item/" + itemModelPath.getPath());
         }
