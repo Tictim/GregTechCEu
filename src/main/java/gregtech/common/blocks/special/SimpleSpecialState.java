@@ -1,4 +1,4 @@
-package gregtech.common.blocks.extendedstate;
+package gregtech.common.blocks.special;
 
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.block.Block;
@@ -33,7 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-public class SimpleConnectionState extends BlockStateBase implements ConnectionState {
+public class SimpleSpecialState extends BlockStateBase implements ISpecialState {
 
     @Nonnull
     private final IBlockState delegate;
@@ -46,12 +46,7 @@ public class SimpleConnectionState extends BlockStateBase implements ConnectionS
     @Nonnull
     private final BlockPos pos;
 
-    private int computedFlags;
-    private int connectionFlags;
-
-    public SimpleConnectionState(@Nonnull IBlockState delegate,
-                                 @Nonnull IBlockAccess world,
-                                 @Nonnull BlockPos pos) {
+    public SimpleSpecialState(@Nonnull IBlockState delegate, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         this.delegate = delegate;
         this.extState = delegate instanceof IExtendedBlockState ? (IExtendedBlockState) delegate : null;
         this.world = world;
@@ -70,22 +65,6 @@ public class SimpleConnectionState extends BlockStateBase implements ConnectionS
         return pos;
     }
 
-    @Override
-    public int getComputedFlags() {
-        return computedFlags;
-    }
-
-    @Override
-    public int getConnectionFlags() {
-        return connectionFlags;
-    }
-
-    @Override
-    public void setFlags(int computed, int connection) {
-        this.computedFlags = computed;
-        this.connectionFlags = connection;
-    }
-
     @Nullable
     @Override
     public Collection<IUnlistedProperty<?>> getUnlistedNames() {
@@ -101,7 +80,7 @@ public class SimpleConnectionState extends BlockStateBase implements ConnectionS
     @Nullable
     @Override
     public <V> IExtendedBlockState withProperty(@Nullable IUnlistedProperty<V> property, @Nullable V value) {
-        return this.extState != null ? new SimpleConnectionState(this.extState.withProperty(property, value), this.world, this.pos) : this;
+        return this.extState != null ? new SimpleSpecialState(this.extState.withProperty(property, value), this.world, this.pos) : this;
     }
 
     @Nullable
@@ -118,12 +97,12 @@ public class SimpleConnectionState extends BlockStateBase implements ConnectionS
 
     @Override
     public <T extends Comparable<T>, V extends T> IBlockState withProperty(IProperty<T> property, V value) {
-        return new SimpleConnectionState(delegate.withProperty(property, value), this.world, this.pos);
+        return new SimpleSpecialState(delegate.withProperty(property, value), this.world, this.pos);
     }
 
     @Override
     public <T extends Comparable<T>> IBlockState cycleProperty(IProperty<T> property) {
-        return new SimpleConnectionState(delegate.cycleProperty(property), this.world, this.pos);
+        return new SimpleSpecialState(delegate.cycleProperty(property), this.world, this.pos);
     }
 
     /*

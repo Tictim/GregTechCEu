@@ -24,6 +24,11 @@ public class FrameItemBlock extends ItemBlock {
     }
 
     @Override
+    public BlockFrame getBlock() {
+        return frameBlock;
+    }
+
+    @Override
     public int getMetadata(int damage) {
         return damage;
     }

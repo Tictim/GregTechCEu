@@ -1,5 +1,6 @@
 package gregtech.common.blocks;
 
+import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
 import gregtech.api.block.DelayedStateBlock;
 import gregtech.api.items.toolitem.ToolClasses;
@@ -16,9 +17,9 @@ import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 import gregtech.client.model.MaterialStateMapper;
 import gregtech.client.model.modelfactories.MaterialBlockModelLoader;
-import gregtech.common.blocks.extendedstate.ConnectionChecker;
-import gregtech.common.blocks.extendedstate.SimpleConnectionState;
 import gregtech.common.blocks.properties.PropertyMaterial;
+import gregtech.common.blocks.special.CTMSpecialState;
+import gregtech.common.blocks.special.SimpleSpecialState;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
@@ -41,6 +42,7 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.client.model.ModelLoader;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -48,7 +50,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Map;
 
-public final class BlockFrame extends DelayedStateBlock implements ConnectionChecker {
+public final class BlockFrame extends DelayedStateBlock {
 
     private static final double CLIMBABLE_HITBOX_OFFSET = 1.0 / 16;
     private static final AxisAlignedBB[] COLLISION_BOXES = new AxisAlignedBB[16];
@@ -196,9 +198,8 @@ public final class BlockFrame extends DelayedStateBlock implements ConnectionChe
             IBlockState pipeState = blockPipe.getDefaultState();
             // these 0 values are not actually used by forge
             itemBlock.placeBlockAt(stackInHand, playerIn, worldIn, pos, facing, 0, 0, 0, pipeState);
-            IPipeTile<?, ?> pipeTile = blockPipe.getPipeTileEntity(worldIn, pos);
-            if (pipeTile instanceof TileEntityPipeBase) {
-                ((TileEntityPipeBase<?, ?>) pipeTile).setFrameMaterial(getGtMaterial(getMetaFromState(state)));
+            if (blockPipe.getPipeTileEntity(worldIn, pos) instanceof TileEntityPipeBase pipeBase) {
+                pipeBase.setFrameMaterial(getGtMaterial(getMetaFromState(state)));
             } else {
                 GTLog.logger.error("Pipe was not placed!");
                 return false;
@@ -215,8 +216,7 @@ public final class BlockFrame extends DelayedStateBlock implements ConnectionChe
 
     public boolean removeFrame(World world, BlockPos pos, EntityPlayer player, ItemStack stack) {
         TileEntity te = world.getTileEntity(pos);
-        if (te instanceof TileEntityPipeBase<?, ?> && ((IPipeTile<?, ?>) te).getFrameMaterial() != null) {
-            TileEntityPipeBase<?, ?> pipeTile = (TileEntityPipeBase<?, ?>) te;
+        if (te instanceof TileEntityPipeBase<?, ?> pipeTile && pipeTile.getFrameMaterial() != null) {
             Material frameMaterial = pipeTile.getFrameMaterial();
             pipeTile.setFrameMaterial(null);
             Block.spawnAsEntity(world, pos, this.getItem(frameMaterial));
@@ -242,7 +242,7 @@ public final class BlockFrame extends DelayedStateBlock implements ConnectionChe
             return removeFrame(worldIn, pos, playerIn, stackInHand);
         }
 
-        if (!(stackInHand.getItem() instanceof FrameItemBlock)) {
+        if (!(stackInHand.getItem() instanceof FrameItemBlock frameItem)) {
             return false;
         }
         BlockPos.PooledMutableBlockPos blockPos = BlockPos.PooledMutableBlockPos.retain();
@@ -253,12 +253,12 @@ public final class BlockFrame extends DelayedStateBlock implements ConnectionChe
                 continue;
             }
             TileEntity te = worldIn.getTileEntity(blockPos);
-            if (te instanceof IPipeTile && ((IPipeTile<?, ?>) te).getFrameMaterial() != null) {
+            if (te instanceof IPipeTile pipeTile && pipeTile.getFrameMaterial() != null) {
                 blockPos.move(EnumFacing.UP);
                 continue;
             }
             if (canPlaceBlockAt(worldIn, blockPos)) {
-                worldIn.setBlockState(blockPos, ((FrameItemBlock) stackInHand.getItem()).getBlockState(stackInHand));
+                worldIn.setBlockState(blockPos, frameItem.getBlockState(stackInHand));
                 SoundType type = getSoundType(stackInHand);
                 worldIn.playSound(null, pos, type.getPlaceSound(), SoundCategory.BLOCKS, (type.getVolume() + 1.0F) / 2.0F, type.getPitch() * 0.8F);
                 if (!playerIn.capabilities.isCreativeMode) {
@@ -266,9 +266,9 @@ public final class BlockFrame extends DelayedStateBlock implements ConnectionChe
                 }
                 blockPos.release();
                 return true;
-            } else if (te instanceof TileEntityPipeBase && ((TileEntityPipeBase<?, ?>) te).getFrameMaterial() == null) {
-                Material material = ((BlockFrame) ((FrameItemBlock) stackInHand.getItem()).getBlock()).getGtMaterial(stackInHand.getMetadata());
-                ((TileEntityPipeBase<?, ?>) te).setFrameMaterial(material);
+            } else if (te instanceof TileEntityPipeBase pipeBase && pipeBase.getFrameMaterial() == null) {
+                Material material = frameItem.getBlock().getGtMaterial(stackInHand.getMetadata());
+                pipeBase.setFrameMaterial(material);
                 SoundType type = getSoundType(stackInHand);
                 worldIn.playSound(null, pos, type.getPlaceSound(), SoundCategory.BLOCKS, (type.getVolume() + 1.0F) / 2.0F, type.getPitch() * 0.8F);
                 if (!playerIn.capabilities.isCreativeMode) {
@@ -365,13 +365,11 @@ public final class BlockFrame extends DelayedStateBlock implements ConnectionChe
 
     @Nullable
     public static Material getFrameMaterialAt(@Nonnull IBlockAccess world, @Nonnull IBlockState state, @Nonnull BlockPos pos) {
-        if (state.getBlock() instanceof BlockFrame) {
-            return state.getValue(((BlockFrame) state.getBlock()).variantProperty);
-        } else if (state.getBlock() instanceof BlockPipe) {
-            TileEntity te = world.getTileEntity(pos);
-            if (te instanceof IPipeTile) {
-                return ((IPipeTile<?, ?>) te).getFrameMaterial();
-            }
+        if (state.getBlock() instanceof BlockFrame frame) {
+            return state.getValue(frame.variantProperty);
+        }
+        if (state.getBlock() instanceof BlockPipe && world.getTileEntity(pos) instanceof IPipeTile pipeTile) {
+            return pipeTile.getFrameMaterial();
         }
         return null;
     }
@@ -379,19 +377,9 @@ public final class BlockFrame extends DelayedStateBlock implements ConnectionChe
     @Override
     @Nonnull
     public IBlockState getExtendedState(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        // return Loader.isModLoaded(GTValues.MODID_CTM) ?
-        //         new CTMConnectionState(state, world, pos) :
-        //         new SimpleConnectionState(state, world, pos);
-        return new SimpleConnectionState(state, world, pos);
-    }
-
-    @Override
-    public boolean isConnectedToNeighbor(@Nonnull IBlockAccess world,
-                                         @Nonnull IBlockState originState,
-                                         @Nonnull BlockPos origin,
-                                         @Nonnull BlockPos neighbor) {
-        Material material = originState.getValue(this.variantProperty);
-        return material == getFrameMaterialAt(world, neighbor);
+        return Loader.isModLoaded(GTValues.MODID_CTM) ?
+                new CTMSpecialState(state, world, pos) :
+                new SimpleSpecialState(state, world, pos);
     }
 
     @SideOnly(Side.CLIENT)

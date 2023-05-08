@@ -11,7 +11,7 @@ import gregtech.api.unification.stack.UnificationEntry;
 import gregtech.api.util.FluidTooltipUtil;
 import gregtech.api.util.IBlockOre;
 import gregtech.api.util.ModCompatibility;
-import gregtech.client.model.connectionmultipart.ConnectionVariantModelLoader;
+import gregtech.client.model.CustomBuiltInModelLoader;
 import gregtech.client.model.customtexture.CustomTextureModelHandler;
 import gregtech.client.model.customtexture.MetadataSectionCTM;
 import gregtech.client.renderer.handler.FacadeRenderer;
@@ -125,7 +125,7 @@ public class ClientProxy extends CommonProxy {
         }
 
         MetaTileEntityRenderer.preInit();
-        ModelLoaderRegistry.registerLoader(ConnectionVariantModelLoader.INSTANCE);
+        ModelLoaderRegistry.registerLoader(CustomBuiltInModelLoader.INSTANCE);
         CableRenderer.INSTANCE.preInit();
         FluidPipeRenderer.INSTANCE.preInit();
         ItemPipeRenderer.INSTANCE.preInit();
@@ -160,13 +160,14 @@ public class ClientProxy extends CommonProxy {
         MetaBlocks.registerItemModels();
         MetaItems.registerModels();
         ToolItems.registerModels();
+        CustomBuiltInModelLoader.INSTANCE.init();
     }
 
     @SubscribeEvent
     public static void addMaterialFormulaHandler(@Nonnull ItemTooltipEvent event) {
         ItemStack itemStack = event.getItemStack();
-        if (itemStack.getItem() instanceof ItemBlock) {
-            Block block = ((ItemBlock) itemStack.getItem()).getBlock();
+        if (itemStack.getItem() instanceof ItemBlock itemBlock) {
+            Block block = itemBlock.getBlock();
             if (!(block instanceof BlockFrame) && !(block instanceof BlockCompressed) && !(block instanceof IBlockOre) && !(block instanceof IFluidBlock)) {
                 // Do not apply this tooltip to blocks other than:
                 // - Frames
@@ -183,8 +184,7 @@ public class ClientProxy extends CommonProxy {
         // Test for Items
         UnificationEntry unificationEntry = OreDictUnifier.getUnificationEntry(itemStack);
 
-        if (itemStack.getItem() instanceof MetaOreDictItem) { // Test for OreDictItems
-            MetaOreDictItem oreDictItem = (MetaOreDictItem) itemStack.getItem();
+        if (itemStack.getItem() instanceof MetaOreDictItem oreDictItem) { // Test for OreDictItems
             Optional<String> oreDictName = OreDictUnifier.getOreDictionaryNames(itemStack).stream().findFirst();
             if (oreDictName.isPresent() && oreDictItem.OREDICT_TO_FORMULA.containsKey(oreDictName.get()) && !oreDictItem.OREDICT_TO_FORMULA.get(oreDictName.get()).isEmpty()) {
                 tooltips.add(TextFormatting.YELLOW + oreDictItem.OREDICT_TO_FORMULA.get(oreDictName.get()));
@@ -238,12 +238,12 @@ public class ClientProxy extends CommonProxy {
             InventoryCrafting inv = null;
             InventoryCraftResult result = null;
 
-            if (player.openContainer instanceof ContainerWorkbench) {
-                inv = ((ContainerWorkbench) player.openContainer).craftMatrix;
-                result = ((ContainerWorkbench) player.openContainer).craftResult;
-            } else if (player.openContainer instanceof ContainerPlayer) {
-                inv = ((ContainerPlayer) player.openContainer).craftMatrix;
-                result = ((ContainerPlayer) player.openContainer).craftResult;
+            if (player.openContainer instanceof ContainerWorkbench containerWorkbench) {
+                inv = containerWorkbench.craftMatrix;
+                result = containerWorkbench.craftResult;
+            } else if (player.openContainer instanceof ContainerPlayer containerPlayer) {
+                inv = containerPlayer.craftMatrix;
+                result = containerPlayer.craftResult;
             }
 
             if (inv != null) {
