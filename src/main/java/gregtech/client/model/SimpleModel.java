@@ -61,8 +61,9 @@ public final class SimpleModel implements IModel {
         }
         Set<ResourceLocation> tex2 = new ObjectOpenHashSet<>();
         for (String s : tex) {
-            tex2.add(new ResourceLocation(s));
+            tex2.add(new ResourceLocation(this.textureMappings.getOrDefault(s, s)));
         }
+        tex2.add(new ResourceLocation(this.textureMappings.getOrDefault("particle", "particle")));
         return tex2;
     }
 
@@ -92,13 +93,6 @@ public final class SimpleModel implements IModel {
         return new SimpleModel(this.blockParts, this.uvLock, this.gui3d, this.ambientOcclusion, newTextureMap);
     }
 
-    private static boolean shouldReplaceTexture(@Nonnull BlockPart part, @Nonnull Map<String, String> textures) {
-        for (BlockPartFace face : part.mapFaces.values()) {
-            if (textures.containsKey(face.texture)) return true;
-        }
-        return false;
-    }
-
     @Nonnull
     @Override
     public IBakedModel bake(@Nonnull IModelState state, @Nonnull VertexFormat format, @Nonnull Function<ResourceLocation, TextureAtlasSprite> bakedTextureGetter) {
@@ -106,14 +100,12 @@ public final class SimpleModel implements IModel {
 
         List<BakedQuad> generalQuads = null;
         Map<EnumFacing, List<BakedQuad>> faceQuads = new EnumMap<>(EnumFacing.class);
+        Map<String, TextureAtlasSprite> spriteCache = new Object2ObjectOpenHashMap<>();
 
         for (BlockPart part : this.blockParts) {
-            if (part.partRotation == null) {
-                part = new BlockPart(part.positionFrom, part.positionTo, part.mapFaces, DEFAULT_ROTATION, part.shade);
-            }
             for (Map.Entry<EnumFacing, BlockPartFace> e : part.mapFaces.entrySet()) {
                 BlockPartFace face = e.getValue();
-                TextureAtlasSprite sprite = getMappedSprite(bakedTextureGetter, face.texture);
+                TextureAtlasSprite sprite = spriteCache.computeIfAbsent(face.texture, t -> getMappedSprite(bakedTextureGetter, t));
 
                 if (face.cullFace == null) {
                     if (generalQuads == null) {
@@ -141,7 +133,7 @@ public final class SimpleModel implements IModel {
     private static BakedQuad makeBakedQuad(BlockPart part, BlockPartFace face, TextureAtlasSprite sprite,
                                            EnumFacing facing, TRSRTransformation transformation, boolean uvLock) {
         return ModelFactory.getBakery().makeBakedQuad(part.positionFrom, part.positionTo, face, sprite, facing,
-                transformation, part.partRotation, uvLock, part.shade);
+                transformation, part.partRotation == null ? DEFAULT_ROTATION : part.partRotation, uvLock, part.shade);
     }
 
     @Nonnull

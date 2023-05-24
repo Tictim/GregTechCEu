@@ -159,24 +159,27 @@ public class FrameModel extends SpecialModel {
                 .beginPart()
                 .from(x1, y1, z1)
                 .to(x2, y2, z2)
-                .forSide(edge.getFacingA().getOpposite(), edge.getFacingB().getOpposite()).texture("border").tintIndex(2).finishSide()
+                .forSide(edge.getFacingA().getOpposite(),
+                        edge.getFacingB().getOpposite()).texture("border").tintIndex(2).finishSide()
                 .finishPart()
                 .build();
     }
 
-    private static IModel vertexModel(CubeVertex edge, float thickness) {
-        float x1 = edge.getDirection().getX() > 0 ? 16 - thickness : 0;
-        float y1 = edge.getDirection().getY() > 0 ? 16 - thickness : 0;
-        float z1 = edge.getDirection().getZ() > 0 ? 16 - thickness : 0;
-        float x2 = edge.getDirection().getX() < 0 ? thickness : 16;
-        float y2 = edge.getDirection().getX() < 0 ? thickness : 16;
-        float z2 = edge.getDirection().getX() < 0 ? thickness : 16;
+    private static IModel vertexModel(CubeVertex vertex, float thickness) {
+        float x1 = vertex.getDirection().getX() > 0 ? 16 - thickness : 0;
+        float y1 = vertex.getDirection().getY() > 0 ? 16 - thickness : 0;
+        float z1 = vertex.getDirection().getZ() > 0 ? 16 - thickness : 0;
+        float x2 = vertex.getDirection().getX() < 0 ? thickness : 16;
+        float y2 = vertex.getDirection().getX() < 0 ? thickness : 16;
+        float z2 = vertex.getDirection().getX() < 0 ? thickness : 16;
 
         return SimpleModel.builder()
                 .beginPart()
                 .from(x1, y1, z1)
                 .to(x2, y2, z2)
-                .forSide(edge.getFacingA().getOpposite(), edge.getFacingB().getOpposite()).texture("border").tintIndex(2).finishSide()
+                .forSide(vertex.getFacingA().getOpposite(),
+                        vertex.getFacingB().getOpposite(),
+                        vertex.getFacingC().getOpposite()).texture("border").tintIndex(2).finishSide()
                 .finishPart()
                 .build();
     }
