@@ -14,6 +14,8 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.vertex.VertexFormat;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.client.model.IModel;
 import net.minecraftforge.common.model.IModelState;
 
@@ -118,18 +120,14 @@ public abstract class SpecialModel implements IModel {
             IModel retextured = this.parts.get(i).retexture(textures);
             this.parts.set(i, retextured);
         }
-        if (this.particleTexture != null) {
-            String newParticle = textures.get(this.particleTexture.toString());
-            if (newParticle != null) {
-                this.particleTexture = new ResourceLocation(newParticle);
-            }
+        String newParticle = textures.get("particle");
+        if (newParticle != null) {
+            this.particleTexture = new ResourceLocation(newParticle);
         }
     }
 
     @Override
-    public IBakedModel bake(@Nonnull IModelState state,
-                            @Nonnull VertexFormat format,
-                            @Nonnull Function<ResourceLocation, TextureAtlasSprite> bakedTextureGetter) {
+    public IBakedModel bake(@Nonnull IModelState state, @Nonnull VertexFormat format, @Nonnull Function<ResourceLocation, TextureAtlasSprite> bakedTextureGetter) {
         return new Baked(
                 this.parts.stream()
                         .map(e -> e.bake(state, format, bakedTextureGetter))
@@ -149,10 +147,7 @@ public abstract class SpecialModel implements IModel {
 
         @Override
         public List<BakedQuad> getQuads(@Nullable IBlockState state, @Nullable EnumFacing side, long rand) {
-            if (!(state instanceof ISpecialState)) {
-                return Collections.emptyList();
-            }
-            ModelCollector collector = new ModelCollector((ISpecialState) state, side, rand, this.parts);
+            ModelCollector collector = new ModelCollector(state, side, rand, this.parts);
             SpecialModel.this.collectModels(collector);
             return collector.toQuads();
         }
@@ -198,8 +193,12 @@ public abstract class SpecialModel implements IModel {
 
     public static final class ModelCollector {
 
-        @Nonnull
-        public final ISpecialState state;
+        @Nullable
+        public final IBlockState state;
+        @Nullable
+        public final IBlockAccess world;
+        @Nullable
+        public final BlockPos pos;
         @Nullable
         public final EnumFacing side;
         public final long rand;
@@ -208,8 +207,15 @@ public abstract class SpecialModel implements IModel {
 
         private final IntSet includedParts = new IntOpenHashSet();
 
-        public ModelCollector(@Nonnull ISpecialState state, @Nullable EnumFacing side, long rand, @Nonnull List<IBakedModel> parts) {
+        public ModelCollector(@Nullable IBlockState state, @Nullable EnumFacing side, long rand, @Nonnull List<IBakedModel> parts) {
             this.state = state;
+            if (state instanceof ISpecialState specialState) {
+                this.world = specialState.getWorld();
+                this.pos = specialState.getPos();
+            } else {
+                this.world = null;
+                this.pos = null;
+            }
             this.side = side;
             this.rand = rand;
             this.parts = parts;
@@ -223,7 +229,7 @@ public abstract class SpecialModel implements IModel {
                     throw new IndexOutOfBoundsException("Invalid model part index; expected: 0 ~ " + (this.parts.size() - 1) + " (inclusive)");
                 }
             }
-            includedParts.add(partIndex);
+            this.includedParts.add(partIndex);
         }
 
         @Nonnull

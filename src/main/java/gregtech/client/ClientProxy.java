@@ -11,7 +11,7 @@ import gregtech.api.unification.stack.UnificationEntry;
 import gregtech.api.util.FluidTooltipUtil;
 import gregtech.api.util.IBlockOre;
 import gregtech.api.util.ModCompatibility;
-import gregtech.client.model.CustomBuiltInModelLoader;
+import gregtech.client.model.GregTechBuiltInModelLoader;
 import gregtech.client.model.customtexture.CustomTextureModelHandler;
 import gregtech.client.model.customtexture.MetadataSectionCTM;
 import gregtech.client.renderer.handler.FacadeRenderer;
@@ -80,7 +80,7 @@ public class ClientProxy extends CommonProxy {
         }
 
         MetaTileEntityRenderer.preInit();
-        ModelLoaderRegistry.registerLoader(CustomBuiltInModelLoader.INSTANCE);
+        ModelLoaderRegistry.registerLoader(GregTechBuiltInModelLoader.INSTANCE);
         CableRenderer.INSTANCE.preInit();
         FluidPipeRenderer.INSTANCE.preInit();
         ItemPipeRenderer.INSTANCE.preInit();
@@ -115,7 +115,7 @@ public class ClientProxy extends CommonProxy {
         MetaBlocks.registerItemModels();
         MetaItems.registerModels();
         ToolItems.registerModels();
-        CustomBuiltInModelLoader.INSTANCE.init();
+        GregTechBuiltInModelLoader.INSTANCE.init();
     }
 
     @SubscribeEvent

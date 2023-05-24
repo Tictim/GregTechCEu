@@ -1,0 +1,10 @@
+{
+  "parent": "gregtech:builtin/frame",
+  "textures": {
+    "particle": "gregtech:blocks/material_sets/dull/frame_gt",
+    "top": "gregtech:blocks/material_sets/dull/frame_gt",
+    "side": "gregtech:blocks/material_sets/dull/frame_gt",
+    "bottom": "gregtech:blocks/material_sets/dull/frame_gt",
+    "border": "gregtech:blocks/material_sets/dull/frame_gt_border"
+  }
+}
