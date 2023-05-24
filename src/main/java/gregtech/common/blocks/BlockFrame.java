@@ -2,7 +2,6 @@ package gregtech.common.blocks;
 
 import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
-import gregtech.api.block.DelayedStateBlock;
 import gregtech.api.items.toolitem.ToolClasses;
 import gregtech.api.items.toolitem.ToolHelper;
 import gregtech.api.pipenet.block.BlockPipe;
@@ -11,12 +10,11 @@ import gregtech.api.pipenet.tile.IPipeTile;
 import gregtech.api.pipenet.tile.TileEntityPipeBase;
 import gregtech.api.recipes.ModHandler;
 import gregtech.api.unification.material.Material;
-import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.material.info.MaterialIconType;
 import gregtech.api.util.GTLog;
-import gregtech.api.util.GTUtility;
 import gregtech.client.model.MaterialStateMapper;
 import gregtech.client.model.modelfactories.MaterialBlockModelLoader;
+import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.properties.PropertyMaterial;
 import gregtech.common.blocks.special.CTMSpecialState;
 import gregtech.common.blocks.special.SimpleSpecialState;
@@ -25,9 +23,8 @@ import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.EnumPushReaction;
 import net.minecraft.block.state.BlockFaceShape;
-import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving.SpawnPlacementType;
 import net.minecraft.entity.player.EntityPlayer;
@@ -35,7 +32,10 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.*;
+import net.minecraft.util.BlockRenderLayer;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
@@ -48,9 +48,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Map;
 
-public final class BlockFrame extends DelayedStateBlock {
+public abstract class BlockFrame extends BlockMaterialBase {
 
     private static final double CLIMBABLE_HITBOX_OFFSET = 1.0 / 16;
     private static final AxisAlignedBB[] COLLISION_BOXES = new AxisAlignedBB[16];
@@ -86,42 +85,28 @@ public final class BlockFrame extends DelayedStateBlock {
         return box;
     }
 
-    public final PropertyMaterial variantProperty;
+    public static BlockFrame create(Material[] materials) {
+        PropertyMaterial property = PropertyMaterial.create("variant", materials);
+        return new BlockFrame() {
+            @Nonnull
+            @Override
+            public PropertyMaterial getVariantProperty() {
+                return property;
+            }
+        };
+    }
 
-    // todo wood?
-    public BlockFrame(Material[] materials) {
+    private BlockFrame() {
         super(net.minecraft.block.material.Material.IRON);
         setTranslationKey("frame");
         setHardness(3.0f);
         setResistance(6.0f);
         setCreativeTab(GregTechAPI.TAB_GREGTECH_MATERIALS);
-        this.variantProperty = PropertyMaterial.create("variant", materials);
-        initBlockState();
-    }
-
-    @Override
-    public int damageDropped(@Nonnull IBlockState state) {
-        return getMetaFromState(state);
-    }
-
-    @Nonnull
-    @Override
-    @SuppressWarnings("deprecation")
-    public IBlockState getStateFromMeta(int meta) {
-        if (meta >= variantProperty.getAllowedValues().size()) {
-            meta = 0;
-        }
-        return getDefaultState().withProperty(variantProperty, variantProperty.getAllowedValues().get(meta));
-    }
-
-    @Override
-    public int getMetaFromState(IBlockState state) {
-        return variantProperty.getAllowedValues().indexOf(state.getValue(variantProperty));
     }
 
     @Override
     public String getHarvestTool(IBlockState state) {
-        Material material = state.getValue(variantProperty);
+        Material material = getGtMaterial(state);
         if (ModHandler.isMaterialWood(material)) {
             return ToolClasses.AXE;
         }
@@ -131,7 +116,7 @@ public final class BlockFrame extends DelayedStateBlock {
     @Nonnull
     @Override
     public SoundType getSoundType(IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nullable Entity entity) {
-        Material material = state.getValue(variantProperty);
+        Material material = getGtMaterial(state);
         if (ModHandler.isMaterialWood(material)) {
             return SoundType.WOOD;
         }
@@ -139,7 +124,7 @@ public final class BlockFrame extends DelayedStateBlock {
     }
 
     public SoundType getSoundType(ItemStack stack) {
-        Material material = getGtMaterial(stack.getMetadata());
+        Material material = getGtMaterial(stack);
         if (ModHandler.isMaterialWood(material)) {
             return SoundType.WOOD;
         }
@@ -152,15 +137,10 @@ public final class BlockFrame extends DelayedStateBlock {
     }
 
     @Override
-    protected BlockStateContainer createStateContainer() {
-        return new BlockStateContainer(this, variantProperty);
-    }
-
-    @Override
     @Nonnull
     @SuppressWarnings("deprecation")
     public net.minecraft.block.material.Material getMaterial(IBlockState state) {
-        Material material = state.getValue(variantProperty);
+        Material material = getGtMaterial(state);
         if (ModHandler.isMaterialWood(material)) {
             return net.minecraft.block.material.Material.WOOD;
         }
@@ -171,11 +151,15 @@ public final class BlockFrame extends DelayedStateBlock {
     public void getSubBlocks(@Nonnull CreativeTabs tab, @Nonnull NonNullList<ItemStack> list) {
         blockState.getValidStates().stream()
                 .filter(blockState -> blockState.getValue(variantProperty) != Materials.NULL)
-                .forEach(blockState -> list.add(GTUtility.toItem(blockState)));
+                .forEach(blockState -> list.add(getItem(blockState)));
+    }
+
+    public static ItemStack getItem(IBlockState blockState) {
+        return GTUtility.toItem(blockState);
     }
 
     public ItemStack getItem(Material material) {
-        return GTUtility.toItem(getDefaultState().withProperty(variantProperty, material));
+        return getItem(getDefaultState().withProperty(variantProperty, material));
     }
 
     public IBlockState getBlock(Material material) {
@@ -199,7 +183,7 @@ public final class BlockFrame extends DelayedStateBlock {
             // these 0 values are not actually used by forge
             itemBlock.placeBlockAt(stackInHand, playerIn, worldIn, pos, facing, 0, 0, 0, pipeState);
             if (blockPipe.getPipeTileEntity(worldIn, pos) instanceof TileEntityPipeBase pipeBase) {
-                pipeBase.setFrameMaterial(getGtMaterial(getMetaFromState(state)));
+                pipeBase.setFrameMaterial(getGtMaterial(state));
             } else {
                 GTLog.logger.error("Pipe was not placed!");
                 return false;
@@ -218,28 +202,30 @@ public final class BlockFrame extends DelayedStateBlock {
         TileEntity te = world.getTileEntity(pos);
         if (te instanceof TileEntityPipeBase<?, ?> pipeTile && pipeTile.getFrameMaterial() != null) {
             Material frameMaterial = pipeTile.getFrameMaterial();
-            pipeTile.setFrameMaterial(null);
+            if (frameMaterial != null) {pipeTile.setFrameMaterial(null);
             Block.spawnAsEntity(world, pos, this.getItem(frameMaterial));
             ToolHelper.damageItem(stack, player);
             ToolHelper.playToolSound(stack, player);
-            return true;
+            return true;}
         }
         return false;
     }
 
     @Override
-    public boolean onBlockActivated(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state, EntityPlayer playerIn, @Nonnull EnumHand hand, @Nonnull EnumFacing facing, float hitX, float hitY, float hitZ) {
-        ItemStack stackInHand = playerIn.getHeldItem(hand);
-        if (stackInHand.isEmpty()) {
+    public boolean onBlockActivated(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state,
+                                    @Nonnull EntityPlayer player, @Nonnull EnumHand hand, @Nonnull EnumFacing facing,
+                                    float hitX, float hitY, float hitZ) {
+        ItemStack stack = player.getHeldItem(hand);
+        if (stack.isEmpty()) {
             return false;
         }
         // replace frame with pipe and set the frame material to this frame
-        if (stackInHand.getItem() instanceof ItemBlockPipe) {
-            return replaceWithFramedPipe(worldIn, pos, state, playerIn, stackInHand, facing);
+        if (stack.getItem() instanceof ItemBlockPipe) {
+            return replaceWithFramedPipe(world, pos, state, player, stack, facing);
         }
 
-        if (stackInHand.getItem().getToolClasses(stackInHand).contains(ToolClasses.CROWBAR)) {
-            return removeFrame(worldIn, pos, playerIn, stackInHand);
+        if (stack.getItem().getToolClasses(stack).contains(ToolClasses.CROWBAR)) {
+            return removeFrame(world, pos, player, stack);
         }
 
         if (!(stackInHand.getItem() instanceof FrameItemBlock frameItem)) {
@@ -248,11 +234,11 @@ public final class BlockFrame extends DelayedStateBlock {
         BlockPos.PooledMutableBlockPos blockPos = BlockPos.PooledMutableBlockPos.retain();
         blockPos.setPos(pos);
         for (int i = 0; i < 32; i++) {
-            if (worldIn.getBlockState(blockPos).getBlock() instanceof BlockFrame) {
+            if (world.getBlockState(blockPos).getBlock() instanceof BlockFrame) {
                 blockPos.move(EnumFacing.UP);
                 continue;
             }
-            TileEntity te = worldIn.getTileEntity(blockPos);
+            TileEntity te = world.getTileEntity(blockPos);
             if (te instanceof IPipeTile pipeTile && pipeTile.getFrameMaterial() != null) {
                 blockPos.move(EnumFacing.UP);
                 continue;
@@ -382,6 +368,13 @@ public final class BlockFrame extends DelayedStateBlock {
                 new SimpleSpecialState(state, world, pos);
     }
 
+    @Override
+    public void addInformation(ItemStack stack, @Nullable World world, List<String> tooltip, ITooltipFlag flag) {
+        if (ConfigHolder.misc.debug) {
+            tooltip.add("MetaItem Id: frame" + getGtMaterial(stack).toCamelCaseString());
+        }
+    }
+
     @SideOnly(Side.CLIENT)
     public void onModelRegister() {
         Map<Material, MaterialBlockModelLoader.Entry> map = new Object2ObjectOpenHashMap<>();
@@ -399,5 +392,15 @@ public final class BlockFrame extends DelayedStateBlock {
                     entry.getItemModelId());
         }
         ModelLoader.setCustomStateMapper(this, new MaterialStateMapper(map, s -> s.getValue(this.variantProperty)));
+    }
+
+    @Nullable
+    public static BlockFrame getFrameBlockFromItem(ItemStack stack) {
+        Item item = stack.getItem();
+        if (item instanceof ItemBlock) {
+            Block block = ((ItemBlock) item).getBlock();
+            if (block instanceof BlockFrame) return (BlockFrame) block;
+        }
+        return null;
     }
 }

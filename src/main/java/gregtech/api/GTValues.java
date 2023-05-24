@@ -19,7 +19,10 @@ public class GTValues {
 
     /**
      * Version String for use in addon mods' @Mod(dependencies = "...") block.
+     *
+     * @deprecated use {@link gregtech.GTInternalTags#VERSION}
      */
+    @Deprecated
     public static final String MOD_VERSION_DEP = "required-after:gregtech@[" + GregTechVersion.DEP_VERSION + ",);";
 
     /**
@@ -123,7 +126,9 @@ public class GTValues {
             MODID_APPENG = "appliedenergistics2",
             MODID_JEI = "jei",
             MODID_GROOVYSCRIPT = "groovyscript",
-            MODID_NC = "nuclearcraft";
+            MODID_NC = "nuclearcraft",
+            MODID_IE = "immersiveengineering",
+            MODID_OC = "opencomputers";
 
     private static Boolean isClient;
 
