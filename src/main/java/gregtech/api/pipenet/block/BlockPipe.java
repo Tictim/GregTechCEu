@@ -18,6 +18,7 @@ import gregtech.api.pipenet.WorldPipeNet;
 import gregtech.api.pipenet.tile.IPipeTile;
 import gregtech.api.pipenet.tile.PipeCoverableImplementation;
 import gregtech.api.pipenet.tile.TileEntityPipeBase;
+import gregtech.api.unification.material.Material;
 import gregtech.api.util.GTUtility;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.BlockFrame;
@@ -87,32 +88,15 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
         float min = (1.0f - thickness) / 2.0f, max = min + thickness;
         float faceMin = 0f, faceMax = 1f;
 
-        if (side == null)
-            return new Cuboid6(min, min, min, max, max, max);
-        Cuboid6 cuboid;
-        switch (side) {
-            case WEST:
-                cuboid = new Cuboid6(faceMin, min, min, min, max, max);
-                break;
-            case EAST:
-                cuboid = new Cuboid6(max, min, min, faceMax, max, max);
-                break;
-            case NORTH:
-                cuboid = new Cuboid6(min, min, faceMin, max, max, min);
-                break;
-            case SOUTH:
-                cuboid = new Cuboid6(min, min, max, max, max, faceMax);
-                break;
-            case UP:
-                cuboid = new Cuboid6(min, max, min, max, faceMax, max);
-                break;
-            case DOWN:
-                cuboid = new Cuboid6(min, faceMin, min, max, min, max);
-                break;
-            default:
-                cuboid = new Cuboid6(min, min, min, max, max, max);
-        }
-        return cuboid;
+        return side == null ? new Cuboid6(min, min, min, max, max, max) :
+                switch (side) {
+                    case WEST -> new Cuboid6(faceMin, min, min, min, max, max);
+                    case EAST -> new Cuboid6(max, min, min, faceMax, max, max);
+                    case NORTH -> new Cuboid6(min, min, faceMin, max, max, min);
+                    case SOUTH -> new Cuboid6(min, min, max, max, max, faceMax);
+                    case UP -> new Cuboid6(min, max, min, max, faceMax, max);
+                    case DOWN -> new Cuboid6(min, faceMin, min, max, min, max);
+                };
     }
 
     public abstract Class<PipeType> getPipeTypeClass();
@@ -171,11 +155,11 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
             setTileEntityData((TileEntityPipeBase<PipeType, NodeDataType>) pipeTile, stack);
 
             // Color pipes/cables on place if holding spray can in off-hand
-            if (placer instanceof EntityPlayer) {
+            if (placer instanceof EntityPlayer player) {
                 ItemStack offhand = placer.getHeldItemOffhand();
                 for (int i = 0; i < EnumDyeColor.values().length; i++) {
                     if (offhand.isItemEqual(MetaItems.SPRAY_CAN_DYES[i].getStackForm())) {
-                        MetaItems.SPRAY_CAN_DYES[i].getBehaviours().get(0).onItemUse((EntityPlayer) placer, worldIn, pos, EnumHand.OFF_HAND, EnumFacing.UP, 0, 0, 0);
+                        MetaItems.SPRAY_CAN_DYES[i].getBehaviours().get(0).onItemUse(player, worldIn, pos, EnumHand.OFF_HAND, EnumFacing.UP, 0, 0, 0);
                         break;
                     }
                 }
@@ -270,13 +254,9 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
         if (pipeTile == null) {
             return ItemStack.EMPTY;
         }
-        if (target instanceof CuboidRayTraceResult) {
-            CuboidRayTraceResult result = (CuboidRayTraceResult) target;
-            if (result.cuboid6.data instanceof CoverSideData) {
-                EnumFacing coverSide = ((CoverSideData) result.cuboid6.data).side;
-                CoverBehavior coverBehavior = pipeTile.getCoverableImplementation().getCoverAtSide(coverSide);
-                return coverBehavior == null ? ItemStack.EMPTY : coverBehavior.getPickItem();
-            }
+        if (target instanceof CuboidRayTraceResult result && result.cuboid6.data instanceof CoverSideData coverSideData) {
+            CoverBehavior coverBehavior = pipeTile.getCoverableImplementation().getCoverAtSide(coverSideData.side);
+            return coverBehavior == null ? ItemStack.EMPTY : coverBehavior.getPickItem();
         }
         return getDropItem(pipeTile);
     }
@@ -295,11 +275,11 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
         ItemStack itemStack = entityPlayer.getHeldItem(hand);
 
         if (pipeTile.getFrameMaterial() == null &&
-                pipeTile instanceof TileEntityPipeBase &&
+                pipeTile instanceof TileEntityPipeBase pipeBase &&
                 pipeTile.getPipeType().getThickness() < 1) {
             BlockFrame frameBlock = BlockFrame.getFrameBlockFromItem(itemStack);
             if (frameBlock != null) {
-                ((TileEntityPipeBase<PipeType, NodeDataType>) pipeTile).setFrameMaterial(frameBlock.getGtMaterial(itemStack));
+                pipeBase.setFrameMaterial(frameBlock.getGtMaterial(itemStack));
                 SoundType type = frameBlock.getSoundType(itemStack);
                 world.playSound(entityPlayer, pos, type.getPlaceSound(), SoundCategory.BLOCKS, (type.getVolume() + 1.0F) / 2.0F, type.getPitch() * 0.8F);
                 if (!entityPlayer.capabilities.isCreativeMode) {
@@ -309,18 +289,15 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
             }
         }
 
-        if (itemStack.getItem() instanceof ItemBlockPipe) {
+        if (itemStack.getItem() instanceof ItemBlockPipe itemBlockPipe) {
             IBlockState blockStateAtSide = world.getBlockState(pos.offset(side));
-            if (blockStateAtSide.getBlock() instanceof BlockFrame) {
-                ItemBlockPipe<?, ?> itemBlockPipe = (ItemBlockPipe<?, ?>) itemStack.getItem();
-                if (itemBlockPipe.blockPipe.getItemPipeType(itemStack) == getItemPipeType(itemStack)) {
-                    BlockFrame frameBlock = (BlockFrame) blockStateAtSide.getBlock();
-                    boolean wasPlaced = frameBlock.replaceWithFramedPipe(world, pos.offset(side), blockStateAtSide, entityPlayer, itemStack, side);
-                    if (wasPlaced) {
-                        pipeTile.setConnection(side, true, false);
-                    }
-                    return wasPlaced;
+            if (blockStateAtSide.getBlock() instanceof BlockFrame blockFrame &&
+                    itemBlockPipe.blockPipe.getItemPipeType(itemStack) == getItemPipeType(itemStack)) {
+                boolean wasPlaced = blockFrame.replaceWithFramedPipe(world, pos.offset(side), blockStateAtSide, entityPlayer, itemStack, side);
+                if (wasPlaced) {
+                    pipeTile.setConnection(side, true, false);
                 }
+                return wasPlaced;
             }
         }
 
@@ -531,12 +508,8 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
 
     @SuppressWarnings("unchecked")
     public IPipeTile<PipeType, NodeDataType> getPipeTileEntity(TileEntity tileEntity) {
-        if (tileEntity instanceof IPipeTile) {
-            if (isThisPipeBlock(((IPipeTile<?, ?>) tileEntity).getPipeBlock())) {
-                return (IPipeTile<PipeType, NodeDataType>) tileEntity;
-            }
-        }
-        return null;
+        return tileEntity instanceof IPipeTile pipeTile && isThisPipeBlock(pipeTile.getPipeBlock()) ?
+                (IPipeTile<PipeType, NodeDataType>) pipeTile : null;
     }
 
     public boolean canConnect(IPipeTile<PipeType, NodeDataType> selfTile, EnumFacing facing) {
@@ -547,11 +520,10 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
             return false;
         }
         TileEntity other = selfTile.getPipeWorld().getTileEntity(selfTile.getPipePos().offset(facing));
-        if (other instanceof IPipeTile) {
-            cover = ((IPipeTile<?, ?>) other).getCoverableImplementation().getCoverAtSide(facing.getOpposite());
-            if (cover != null && !cover.canPipePassThrough())
-                return false;
-            return canPipesConnect(selfTile, facing, (IPipeTile<?, ?>) other);
+        if (other instanceof IPipeTile pipeTile) {
+            cover = pipeTile.getCoverableImplementation().getCoverAtSide(facing.getOpposite());
+            return (cover == null || cover.canPipePassThrough()) &&
+                    canPipesConnect(selfTile, facing, pipeTile);
         }
         return canPipeConnectToBlock(selfTile, facing, other);
     }
@@ -595,10 +567,10 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
     }
 
     public boolean hasPipeCollisionChangingItem(IBlockAccess world, BlockPos pos, Entity entity) {
-        if (entity instanceof EntityPlayer) {
-            return hasPipeCollisionChangingItem(world, pos, ((EntityPlayer) entity).getHeldItem(EnumHand.MAIN_HAND)) ||
-                    hasPipeCollisionChangingItem(world, pos, ((EntityPlayer) entity).getHeldItem(EnumHand.OFF_HAND)) ||
-                    entity.isSneaking() && isHoldingPipe((EntityPlayer) entity);
+        if (entity instanceof EntityPlayer player) {
+            return hasPipeCollisionChangingItem(world, pos, player.getHeldItem(EnumHand.MAIN_HAND)) ||
+                    hasPipeCollisionChangingItem(world, pos, player.getHeldItem(EnumHand.OFF_HAND)) ||
+                    player.isSneaking() && isHoldingPipe(player);
         }
         return false;
     }
@@ -627,11 +599,8 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
     public IBlockState getFacade(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nullable EnumFacing side) {
         IPipeTile<?, ?> pipeTile = getPipeTileEntity(world, pos);
         if (pipeTile != null) {
-            if (side != null) {
-                CoverBehavior coverBehavior = pipeTile.getCoverableImplementation().getCoverAtSide(side);
-                if (coverBehavior instanceof IFacadeCover) {
-                    return ((IFacadeCover) coverBehavior).getVisualState();
-                }
+            if (side != null && pipeTile.getCoverableImplementation().getCoverAtSide(side) instanceof IFacadeCover facadeCover) {
+                return facadeCover.getVisualState();
             }
             Material frameMaterial = pipeTile.getFrameMaterial();
             if (frameMaterial != null) {

@@ -8,8 +8,6 @@ import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
 import codechicken.lib.vec.uv.IconTransformation;
 import gregtech.api.GTValues;
-import gregtech.api.unification.material.info.MaterialIconSet;
-import gregtech.api.unification.material.info.MaterialIconType;
 import gregtech.api.util.GTLog;
 import gregtech.client.renderer.CubeRendererState;
 import gregtech.client.renderer.ICubeRenderer;

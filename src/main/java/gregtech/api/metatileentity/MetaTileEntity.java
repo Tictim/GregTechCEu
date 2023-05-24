@@ -182,12 +182,10 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
         }
     }
 
-    public void addDebugInfo(List<String> list) {
-    }
+    public void addDebugInfo(List<String> list) {}
 
     @SideOnly(Side.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable World world, @Nonnull List<String> tooltip, boolean advanced) {
-    }
+    public void addInformation(ItemStack stack, @Nullable World world, @Nonnull List<String> tooltip, boolean advanced) {}
 
     /**
      * Override this to add extended tool information to the "Hold SHIFT to show Tool Info" tooltip section.
@@ -213,7 +211,9 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
         tooltip.add(I18n.format("gregtech.tool_action.crowbar"));
     }
 
-    /** Override this to completely remove the "Tool Info" tooltip section */
+    /**
+     * Override this to completely remove the "Tool Info" tooltip section
+     */
     public boolean showToolUsages() {
         return true;
     }
@@ -311,7 +311,6 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
      *
      * @param creativeTab The creative tab to check
      * @return Whether this MTE belongs in the creative tab or not
-     *
      * @see gregtech.api.block.machines.MachineItemBlock#addCreativeTab(CreativeTabs) MachineItemBlock#addCreativeTab(CreativeTabs)
      */
     public boolean isInCreativeTab(CreativeTabs creativeTab) {
@@ -335,25 +334,25 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
     }
 
     public <T> void addNotifiedInput(T input) {
-        if (input instanceof IItemHandlerModifiable) {
+        if (input instanceof IItemHandlerModifiable itemHandlerModifiable) {
             if (!notifiedItemInputList.contains(input)) {
-                this.notifiedItemInputList.add((IItemHandlerModifiable) input);
+                this.notifiedItemInputList.add(itemHandlerModifiable);
             }
-        } else if (input instanceof FluidTank) {
-            if (!notifiedFluidInputList.contains(input)) {
-                this.notifiedFluidInputList.add((FluidTank) input);
+        } else if (input instanceof FluidTank fluidTank) {
+            if (!notifiedFluidInputList.contains(fluidTank)) {
+                this.notifiedFluidInputList.add(fluidTank);
             }
         }
     }
 
     public <T> void addNotifiedOutput(T output) {
-        if (output instanceof IItemHandlerModifiable) {
+        if (output instanceof IItemHandlerModifiable itemHandlerModifiable) {
             if (!notifiedItemOutputList.contains(output)) {
-                this.notifiedItemOutputList.add((IItemHandlerModifiable) output);
+                this.notifiedItemOutputList.add(itemHandlerModifiable);
             }
-        } else if (output instanceof NotifiableFluidTank) {
+        } else if (output instanceof NotifiableFluidTank notifiableFluidTank) {
             if (!notifiedFluidOutputList.contains(output)) {
-                this.notifiedFluidOutputList.add((NotifiableFluidTank) output);
+                this.notifiedFluidOutputList.add(notifiableFluidTank);
             }
         }
     }
@@ -372,6 +371,7 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
 
     /**
      * Get a trait by name
+     *
      * @param name the name of the trait
      * @return the trait associated with the name
      */
@@ -440,8 +440,7 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
 
             if (result == EnumActionResult.SUCCESS) {
                 return true;
-            }
-            else if (playerIn.isSneaking() && playerIn.getHeldItemMainhand().isEmpty()) {
+            } else if (playerIn.isSneaking() && playerIn.getHeldItemMainhand().isEmpty()) {
                 result = coverBehavior.onScrewdriverClick(playerIn, hand, hitResult);
 
                 return result == EnumActionResult.SUCCESS;
@@ -456,7 +455,7 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
      *
      * @return true if something happened, so tools will get damaged and animations will be played
      */
-    public final boolean onToolClick(EntityPlayer playerIn, @Nonnull Set<String> toolClasses, EnumHand hand, CuboidRayTraceResult hitResult)  {
+    public final boolean onToolClick(EntityPlayer playerIn, @Nonnull Set<String> toolClasses, EnumHand hand, CuboidRayTraceResult hitResult) {
         // the side hit from the machine grid
         EnumFacing gridSideHit = ICoverable.determineGridSideHit(hitResult);
         CoverBehavior coverBehavior = gridSideHit == null ? null : getCoverAtSide(gridSideHit);
@@ -555,8 +554,7 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
         return true;
     }
 
-    public void onLeftClick(EntityPlayer player, EnumFacing facing, CuboidRayTraceResult hitResult) {
-    }
+    public void onLeftClick(EntityPlayer player, EnumFacing facing, CuboidRayTraceResult hitResult) {}
 
     /**
      * @return true if the player must sneak to rotate this metatileentity, otherwise false
@@ -652,8 +650,7 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
         }
     }
 
-    public void onUnload() {
-    }
+    public void onUnload() {}
 
     public final boolean canConnectRedstone(@Nullable EnumFacing side) {
         //so far null side means either upwards or downwards redstone wire connection
@@ -690,8 +687,7 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
         return false;
     }
 
-    public void onNeighborChanged() {
-    }
+    public void onNeighborChanged() {}
 
     public void updateInputRedstoneSignals() {
         for (EnumFacing side : EnumFacing.VALUES) {
@@ -809,13 +805,11 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
      * @param dropsList list of meta tile entity drops
      * @param harvester harvester of this meta tile entity, or null
      */
-    public void getDrops(NonNullList<ItemStack> dropsList, @Nullable EntityPlayer harvester) {
-    }
+    public void getDrops(NonNullList<ItemStack> dropsList, @Nullable EntityPlayer harvester) {}
 
     public ItemStack getPickItem(CuboidRayTraceResult result, EntityPlayer player) {
         IndexedCuboid6 hitCuboid = result.cuboid6;
-        if (hitCuboid.data instanceof CoverSideData) {
-            CoverSideData coverSideData = (CoverSideData) hitCuboid.data;
+        if (hitCuboid.data instanceof CoverSideData coverSideData) {
             CoverBehavior behavior = getCoverAtSide(coverSideData.side);
             return behavior == null ? ItemStack.EMPTY : behavior.getPickItem();
         } else if (hitCuboid.data == null || hitCuboid.data instanceof PrimaryBoxData) {
@@ -980,7 +974,6 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
         return originalCapability;
     }
 
-
     public <T> T getCapability(Capability<T> capability, EnumFacing side) {
         if (capability == GregtechTileCapabilities.CAPABILITY_COVERABLE) {
             return GregtechTileCapabilities.CAPABILITY_COVERABLE.cast(this);
@@ -999,11 +992,9 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
                 break;
             }
         }
-        if (side != null && capabilityResult instanceof IEnergyContainer) {
-            IEnergyContainer energyContainer = (IEnergyContainer) capabilityResult;
-            if (!energyContainer.inputsEnergy(side) && !energyContainer.outputsEnergy(side)) {
-                return null; //do not provide energy container if it can't input or output energy at all
-            }
+        if (side != null && capabilityResult instanceof IEnergyContainer energyContainer &&
+                !energyContainer.inputsEnergy(side) && !energyContainer.outputsEnergy(side)) {
+            return null; //do not provide energy container if it can't input or output energy at all
         }
         return capabilityResult;
     }
@@ -1252,17 +1243,14 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
      * If placing an MTE with methods such as {@link World#setBlockState(BlockPos, IBlockState)},
      * this should be manually called immediately afterwards
      */
-    public void onPlacement() {
-
-    }
+    public void onPlacement() {}
 
     /**
      * Called from breakBlock right before meta tile entity destruction
      * at this stage tile entity inventory is already dropped on ground, but drops aren't fetched yet
      * tile entity will still get getDrops called after this, if player broke block
      */
-    public void onRemoval() {
-    }
+    public void onRemoval() {}
 
     public void invalidate() {
         if (getWorld() != null && getWorld().isRemote) {
@@ -1384,8 +1372,8 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
     @Nullable
     public final AbstractRecipeLogic getRecipeLogic() {
         MTETrait trait = getMTETrait(GregtechDataCodes.ABSTRACT_WORKABLE_TRAIT);
-        if (trait instanceof AbstractRecipeLogic) {
-            return ((AbstractRecipeLogic) trait);
+        if (trait instanceof AbstractRecipeLogic recipeLogic) {
+            return recipeLogic;
         } else if (trait != null) {
             throw new IllegalStateException("MTE Trait " + trait.getName() + " has name " + GregtechDataCodes.ABSTRACT_WORKABLE_TRAIT +
                     " but is not instanceof AbstractRecipeLogic");
@@ -1491,6 +1479,5 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
     }
 
     @Method(modid = GTValues.MODID_APPENG)
-    public void gridChanged() {
-    }
+    public void gridChanged() {}
 }

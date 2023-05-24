@@ -48,6 +48,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.List;
+import java.util.Map;
 
 public abstract class BlockFrame extends BlockMaterialBase {
 
@@ -148,29 +150,6 @@ public abstract class BlockFrame extends BlockMaterialBase {
     }
 
     @Override
-    public void getSubBlocks(@Nonnull CreativeTabs tab, @Nonnull NonNullList<ItemStack> list) {
-        blockState.getValidStates().stream()
-                .filter(blockState -> blockState.getValue(variantProperty) != Materials.NULL)
-                .forEach(blockState -> list.add(getItem(blockState)));
-    }
-
-    public static ItemStack getItem(IBlockState blockState) {
-        return GTUtility.toItem(blockState);
-    }
-
-    public ItemStack getItem(Material material) {
-        return getItem(getDefaultState().withProperty(variantProperty, material));
-    }
-
-    public IBlockState getBlock(Material material) {
-        return getDefaultState().withProperty(variantProperty, material);
-    }
-
-    public Material getGtMaterial(int meta) {
-        return variantProperty.getAllowedValues().get(meta);
-    }
-
-    @Override
     public boolean canCreatureSpawn(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull SpawnPlacementType type) {
         return false;
     }
@@ -202,11 +181,13 @@ public abstract class BlockFrame extends BlockMaterialBase {
         TileEntity te = world.getTileEntity(pos);
         if (te instanceof TileEntityPipeBase<?, ?> pipeTile && pipeTile.getFrameMaterial() != null) {
             Material frameMaterial = pipeTile.getFrameMaterial();
-            if (frameMaterial != null) {pipeTile.setFrameMaterial(null);
-            Block.spawnAsEntity(world, pos, this.getItem(frameMaterial));
-            ToolHelper.damageItem(stack, player);
-            ToolHelper.playToolSound(stack, player);
-            return true;}
+            if (frameMaterial != null) {
+                pipeTile.setFrameMaterial(null);
+                Block.spawnAsEntity(world, pos, this.getItem(frameMaterial));
+                ToolHelper.damageItem(stack, player);
+                ToolHelper.playToolSound(stack, player);
+                return true;
+            }
         }
         return false;
     }
@@ -228,9 +209,9 @@ public abstract class BlockFrame extends BlockMaterialBase {
             return removeFrame(world, pos, player, stack);
         }
 
-        if (!(stackInHand.getItem() instanceof FrameItemBlock frameItem)) {
-            return false;
-        }
+        BlockFrame frameBlock = getFrameBlockFromItem(stack);
+        if (frameBlock == null) return false;
+
         BlockPos.PooledMutableBlockPos blockPos = BlockPos.PooledMutableBlockPos.retain();
         blockPos.setPos(pos);
         for (int i = 0; i < 32; i++) {
@@ -243,22 +224,21 @@ public abstract class BlockFrame extends BlockMaterialBase {
                 blockPos.move(EnumFacing.UP);
                 continue;
             }
-            if (canPlaceBlockAt(worldIn, blockPos)) {
-                worldIn.setBlockState(blockPos, frameItem.getBlockState(stackInHand));
-                SoundType type = getSoundType(stackInHand);
-                worldIn.playSound(null, pos, type.getPlaceSound(), SoundCategory.BLOCKS, (type.getVolume() + 1.0F) / 2.0F, type.getPitch() * 0.8F);
-                if (!playerIn.capabilities.isCreativeMode) {
-                    stackInHand.shrink(1);
+            if (canPlaceBlockAt(world, blockPos)) {
+                world.setBlockState(blockPos, this.getStateFromMeta(stack.getItem().getMetadata(stack.getItemDamage())));
+                SoundType type = getSoundType(stack);
+                world.playSound(null, pos, type.getPlaceSound(), SoundCategory.BLOCKS, (type.getVolume() + 1.0F) / 2.0F, type.getPitch() * 0.8F);
+                if (!player.capabilities.isCreativeMode) {
+                    stack.shrink(1);
                 }
                 blockPos.release();
                 return true;
             } else if (te instanceof TileEntityPipeBase pipeBase && pipeBase.getFrameMaterial() == null) {
-                Material material = frameItem.getBlock().getGtMaterial(stackInHand.getMetadata());
-                pipeBase.setFrameMaterial(material);
-                SoundType type = getSoundType(stackInHand);
-                worldIn.playSound(null, pos, type.getPlaceSound(), SoundCategory.BLOCKS, (type.getVolume() + 1.0F) / 2.0F, type.getPitch() * 0.8F);
-                if (!playerIn.capabilities.isCreativeMode) {
-                    stackInHand.shrink(1);
+                pipeBase.setFrameMaterial(frameBlock.getGtMaterial(stack));
+                SoundType type = getSoundType(stack);
+                world.playSound(null, pos, type.getPlaceSound(), SoundCategory.BLOCKS, (type.getVolume() + 1.0F) / 2.0F, type.getPitch() * 0.8F);
+                if (!player.capabilities.isCreativeMode) {
+                    stack.shrink(1);
                 }
                 blockPos.release();
                 return true;
@@ -334,7 +314,7 @@ public abstract class BlockFrame extends BlockMaterialBase {
     @Override
     @SuppressWarnings("deprecation")
     public boolean shouldSideBeRendered(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) {
-        return shouldFrameSideBeRendered(state.getValue(this.variantProperty), world, pos, side);
+        return shouldFrameSideBeRendered(getGtMaterial(state), world, pos, side);
     }
 
     public static boolean shouldFrameSideBeRendered(@Nonnull Material frameMaterial, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
@@ -352,7 +332,7 @@ public abstract class BlockFrame extends BlockMaterialBase {
     @Nullable
     public static Material getFrameMaterialAt(@Nonnull IBlockAccess world, @Nonnull IBlockState state, @Nonnull BlockPos pos) {
         if (state.getBlock() instanceof BlockFrame frame) {
-            return state.getValue(frame.variantProperty);
+            return frame.getGtMaterial(state);
         }
         if (state.getBlock() instanceof BlockPipe && world.getTileEntity(pos) instanceof IPipeTile pipeTile) {
             return pipeTile.getFrameMaterial();
@@ -379,7 +359,7 @@ public abstract class BlockFrame extends BlockMaterialBase {
     public void onModelRegister() {
         Map<Material, MaterialBlockModelLoader.Entry> map = new Object2ObjectOpenHashMap<>();
         for (IBlockState state : this.getBlockState().getValidStates()) {
-            Material material = state.getValue(this.variantProperty);
+            Material material = getGtMaterial(state);
             MaterialBlockModelLoader.Entry entry = new MaterialBlockModelLoader.EntryBuilder(
                     MaterialIconType.frameGt,
                     material.getMaterialIconSet())
@@ -391,16 +371,13 @@ public abstract class BlockFrame extends BlockMaterialBase {
                     this.getMetaFromState(state),
                     entry.getItemModelId());
         }
-        ModelLoader.setCustomStateMapper(this, new MaterialStateMapper(map, s -> s.getValue(this.variantProperty)));
+        ModelLoader.setCustomStateMapper(this, new MaterialStateMapper(map, this::getGtMaterial));
     }
 
     @Nullable
     public static BlockFrame getFrameBlockFromItem(ItemStack stack) {
-        Item item = stack.getItem();
-        if (item instanceof ItemBlock) {
-            Block block = ((ItemBlock) item).getBlock();
-            if (block instanceof BlockFrame) return (BlockFrame) block;
-        }
-        return null;
+        return stack.getItem() instanceof ItemBlock itemBlock &&
+                itemBlock.getBlock() instanceof BlockFrame blockFrame ?
+                blockFrame : null;
     }
 }

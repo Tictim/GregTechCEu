@@ -24,6 +24,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.List;
+import java.util.Map;
 
 public abstract class BlockCompressed extends BlockMaterialBase {
 
@@ -106,7 +108,7 @@ public abstract class BlockCompressed extends BlockMaterialBase {
     public void onModelRegister() {
         Map<Material, MaterialBlockModelLoader.Entry> map = new Object2ObjectOpenHashMap<>();
         for (IBlockState state : this.getBlockState().getValidStates()) {
-            Material material = state.getValue(this.variantProperty);
+            Material material = getGtMaterial(state);
             MaterialBlockModelLoader.Entry entry = new MaterialBlockModelLoader.EntryBuilder(
                     MaterialIconType.block,
                     material.getMaterialIconSet())
@@ -118,6 +120,6 @@ public abstract class BlockCompressed extends BlockMaterialBase {
                     this.getMetaFromState(state),
                     entry.getItemModelId());
         }
-        ModelLoader.setCustomStateMapper(this, new MaterialStateMapper(map, s -> s.getValue(this.variantProperty)));
+        ModelLoader.setCustomStateMapper(this, new MaterialStateMapper(map, this::getGtMaterial));
     }
 }
