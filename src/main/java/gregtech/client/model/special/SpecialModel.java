@@ -1,12 +1,14 @@
 package gregtech.client.model.special;
 
 import com.google.common.collect.ImmutableMap;
+import gregtech.api.GTValues;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.vertex.VertexFormat;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.model.IModel;
 import net.minecraftforge.common.model.IModelState;
+import net.minecraftforge.fml.common.Loader;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
@@ -17,8 +19,7 @@ import java.util.stream.Collectors;
 
 public abstract class SpecialModel implements IModel {
 
-    private final List<IModel> parts = new ArrayList<>();
-    private final IModelLogic modelLogic;
+    private final List<IModel> parts;
 
     protected boolean ambientOcclusion;
     protected boolean gui3d;
@@ -29,30 +30,43 @@ public abstract class SpecialModel implements IModel {
 
     private ModelTextureMapping textureMappings;
 
+    private IModelLogic modelLogic;
     private boolean modifiable;
 
     public SpecialModel() {
+        this.parts = new ArrayList<>();
         this.ambientOcclusion = true;
         this.gui3d = true;
         this.uvLock = false;
         this.particleTexture = "#particle";
         this.textureMappings = ModelTextureMapping.EMPTY;
-
-        this.modifiable = true;
-        this.modelLogic = buildModelLogic();
-        Objects.requireNonNull(this.modelLogic, "buildModelLogic() returned null");
-        this.modifiable = false;
     }
 
     protected SpecialModel(@Nonnull SpecialModel orig) {
-        this.parts.addAll(orig.parts);
-        this.modelLogic = orig.modelLogic;
+        orig.initModelLogic();
+        this.parts = orig.parts;
         this.ambientOcclusion = orig.ambientOcclusion;
         this.gui3d = orig.gui3d;
         this.uvLock = orig.uvLock;
         this.particleTexture = orig.particleTexture;
         this.textureMappings = orig.textureMappings;
+        this.modelLogic = orig.modelLogic;
         this.modifiable = false;
+    }
+
+    private void initModelLogic() {
+        if (this.modelLogic == null) {
+            this.modifiable = true;
+            this.modelLogic = buildModelLogic();
+            Objects.requireNonNull(this.modelLogic, "buildModelLogic() returned null");
+            this.modifiable = false;
+        }
+    }
+
+    @Nonnull
+    public final IModelLogic getModelLogic() {
+        initModelLogic();
+        return this.modelLogic;
     }
 
     @Nonnull
@@ -71,7 +85,7 @@ public abstract class SpecialModel implements IModel {
     }
 
     @Nullable
-    protected String getParticleTexture() {
+    protected final String getParticleTexture() {
         return particleTexture;
     }
 
@@ -99,6 +113,12 @@ public abstract class SpecialModel implements IModel {
         ResourceLocation particleTexture = this.textureMappings.get(this.particleTexture);
         if (particleTexture != null) textures.add(particleTexture);
         return textures;
+    }
+
+    @Nonnull
+    @Override
+    public SpecialModel process(ImmutableMap<String, String> customData) {
+        return this;
     }
 
     @Nonnull
@@ -147,6 +167,16 @@ public abstract class SpecialModel implements IModel {
 
     @Override
     public IBakedModel bake(@Nonnull IModelState state, @Nonnull VertexFormat format, @Nonnull Function<ResourceLocation, TextureAtlasSprite> bakedTextureGetter) {
+        initModelLogic();
+        if (Loader.isModLoaded(GTValues.MODID_CTM)) {
+            IBakedModel baked = SpecialConnectedModel.bakeConnectedTextureModel(this, state, format, bakedTextureGetter,
+                    this.parts,
+                    this.modelLogic,
+                    this.textureMappings.getTextureOrMissing(this.particleTexture, bakedTextureGetter),
+                    this.ambientOcclusion,
+                    this.gui3d);
+            if (baked != null) return baked;
+        }
         return new SpecialBakedModel(
                 this.parts.stream()
                         .map(e -> e.bake(state, format, bakedTextureGetter))
@@ -156,5 +186,4 @@ public abstract class SpecialModel implements IModel {
                 this.ambientOcclusion,
                 this.gui3d);
     }
-
 }

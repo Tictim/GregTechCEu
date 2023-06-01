@@ -1,5 +1,6 @@
 package gregtech.integration.ctm;
 
+import gregtech.api.unification.material.Material;
 import gregtech.common.blocks.BlockFrame;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.block.model.BakedQuad;
@@ -18,13 +19,16 @@ import team.chisel.ctm.client.util.CTMLogic;
 import team.chisel.ctm.client.util.Quad;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @TextureType("gregtech:frame_gt")
 public class FrameTextureType implements ITextureType {
-
-    private static final CTMLogic.StateComparisonCallback STATE_COMPARATOR = (instance, from, to, dir) -> to.getBlock() instanceof BlockFrame;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -94,13 +98,13 @@ public class FrameTextureType implements ITextureType {
             long data = 0;
 
             for (EnumFacing face : EnumFacing.VALUES) {
-                CTMLogic ctm = new CTMLogic().stateComparator(STATE_COMPARATOR);
+                CTMLogic ctm = new FrameCTMLogic();
                 ctm.disableObscuredFaceCheck = Optional.of(false);
                 ctm.createSubmapIndices(world, pos, face);
                 ctmData.put(face, ctm);
                 data |= ctm.serialized() << (face.ordinal() * 10);
 
-                ctm = new CTMLogic().stateComparator(STATE_COMPARATOR);
+                ctm = new FrameCTMLogic();
                 ctm.disableObscuredFaceCheck = Optional.of(true);
                 ctm.createSubmapIndices(world, pos, face);
                 innerCtmData.put(face, ctm);
@@ -116,6 +120,21 @@ public class FrameTextureType implements ITextureType {
         @Override
         public long getCompressedData() {
             return data;
+        }
+    }
+
+    private static final class FrameCTMLogic extends CTMLogic {
+
+        @Override
+        protected boolean stateComparator(IBlockState from, IBlockState to, EnumFacing dir) {
+            return super.stateComparator(from, to, dir);
+        }
+
+        @Override
+        public boolean isConnected(IBlockAccess world, BlockPos current, BlockPos connection, EnumFacing dir, IBlockState state) {
+            Material frame1 = BlockFrame.getFrameMaterialAt(world, current);
+            Material frame2 = BlockFrame.getFrameMaterialAt(world, connection);
+            return frame1 == frame2;
         }
     }
 }

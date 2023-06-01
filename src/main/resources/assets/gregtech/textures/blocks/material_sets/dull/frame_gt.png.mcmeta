@@ -4,7 +4,7 @@
     "type": "gregtech:frame_gt",
     "layer": "CUTOUT",
     "textures": [
-      "gregtech:blocks/material_sets/dull/frame_gt"
+      "gregtech:blocks/material_sets/dull/frame_gt_ctm"
     ]
   }
 }
