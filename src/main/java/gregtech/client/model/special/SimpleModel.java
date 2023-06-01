@@ -1,11 +1,11 @@
-package gregtech.client.model;
+package gregtech.client.model.special;
 
 import com.google.common.collect.ImmutableMap;
+import gregtech.client.model.ModelFactory;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.client.renderer.block.model.*;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.VertexFormat;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
@@ -15,7 +15,6 @@ import net.minecraftforge.common.model.TRSRTransformation;
 import org.lwjgl.util.vector.Vector3f;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Function;
 
@@ -37,13 +36,13 @@ public final class SimpleModel implements IModel {
     private final boolean gui3d;
     private final boolean ambientOcclusion;
 
-    private final Map<String, String> textureMappings;
+    private final ModelTextureMapping textureMappings;
 
     SimpleModel(@Nonnull List<BlockPart> blockParts, boolean uvLock, boolean gui3d, boolean ambientOcclusion) {
-        this(blockParts, uvLock, gui3d, ambientOcclusion, Collections.emptyMap());
+        this(blockParts, uvLock, gui3d, ambientOcclusion, ModelTextureMapping.EMPTY);
     }
 
-    private SimpleModel(@Nonnull List<BlockPart> blockParts, boolean uvLock, boolean gui3d, boolean ambientOcclusion, @Nonnull Map<String, String> textureMappings) {
+    private SimpleModel(@Nonnull List<BlockPart> blockParts, boolean uvLock, boolean gui3d, boolean ambientOcclusion, @Nonnull ModelTextureMapping textureMappings) {
         this.blockParts = blockParts;
         this.uvLock = uvLock;
         this.gui3d = gui3d;
@@ -53,18 +52,16 @@ public final class SimpleModel implements IModel {
 
     @Override
     public Collection<ResourceLocation> getTextures() {
-        Set<String> tex = new ObjectOpenHashSet<>();
+        Set<ResourceLocation> tex = new ObjectOpenHashSet<>();
         for (BlockPart part : blockParts) {
             for (BlockPartFace face : part.mapFaces.values()) {
-                tex.add(face.texture);
+                ResourceLocation texture = textureMappings.get(face.texture);
+                if (texture != null) tex.add(texture);
             }
         }
-        Set<ResourceLocation> tex2 = new ObjectOpenHashSet<>();
-        for (String s : tex) {
-            tex2.add(new ResourceLocation(this.textureMappings.getOrDefault(s, s)));
-        }
-        tex2.add(new ResourceLocation(this.textureMappings.getOrDefault("particle", "particle")));
-        return tex2;
+        ResourceLocation particleTexture = this.textureMappings.get("#particle");
+        if (particleTexture != null) tex.add(particleTexture);
+        return tex;
     }
 
     @Override
@@ -88,9 +85,8 @@ public final class SimpleModel implements IModel {
     @Override
     public SimpleModel retexture(@Nonnull ImmutableMap<String, String> textures) {
         if (textures.isEmpty()) return this;
-        Map<String, String> newTextureMap = new Object2ObjectOpenHashMap<>(this.textureMappings);
-        newTextureMap.putAll(textures);
-        return new SimpleModel(this.blockParts, this.uvLock, this.gui3d, this.ambientOcclusion, newTextureMap);
+        return new SimpleModel(this.blockParts, this.uvLock, this.gui3d, this.ambientOcclusion,
+                new ModelTextureMapping(this.textureMappings, textures));
     }
 
     @Nonnull
@@ -105,7 +101,8 @@ public final class SimpleModel implements IModel {
         for (BlockPart part : this.blockParts) {
             for (Map.Entry<EnumFacing, BlockPartFace> e : part.mapFaces.entrySet()) {
                 BlockPartFace face = e.getValue();
-                TextureAtlasSprite sprite = spriteCache.computeIfAbsent(face.texture, t -> getMappedSprite(bakedTextureGetter, t));
+                TextureAtlasSprite sprite = spriteCache.computeIfAbsent(face.texture, t ->
+                        this.textureMappings.getTextureOrMissing(t, bakedTextureGetter));
 
                 if (face.cullFace == null) {
                     if (generalQuads == null) {
@@ -124,8 +121,8 @@ public final class SimpleModel implements IModel {
         }
 
         return new SimpleBakedModel(
-                generalQuads != null ? generalQuads : Collections.emptyList(), faceQuads, this.ambientOcclusion,
-                this.gui3d, getMappedSprite(bakedTextureGetter, "particle"),
+                generalQuads != null ? generalQuads : Collections.emptyList(), faceQuads, this.ambientOcclusion, this.gui3d,
+                this.textureMappings.getTextureOrMissing("#particle", bakedTextureGetter),
                 ItemCameraTransforms.DEFAULT, ItemOverrideList.NONE);
     }
 
@@ -134,14 +131,5 @@ public final class SimpleModel implements IModel {
                                            EnumFacing facing, TRSRTransformation transformation, boolean uvLock) {
         return ModelFactory.getBakery().makeBakedQuad(part.positionFrom, part.positionTo, face, sprite, facing,
                 transformation, part.partRotation == null ? DEFAULT_ROTATION : part.partRotation, uvLock, part.shade);
-    }
-
-    @Nonnull
-    private TextureAtlasSprite getMappedSprite(@Nonnull Function<ResourceLocation, TextureAtlasSprite> bakedTextureGetter,
-                                               @Nullable String texture) {
-        ResourceLocation textureLocation = texture == null ?
-                TextureMap.LOCATION_MISSING_TEXTURE :
-                new ResourceLocation(this.textureMappings.getOrDefault(texture, texture));
-        return bakedTextureGetter.apply(textureLocation);
     }
 }

@@ -1,5 +1,6 @@
 package gregtech.integration.ctm;
 
+import gregtech.client.model.special.ModelCollector;
 import gregtech.common.blocks.special.ISpecialState;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 
@@ -13,5 +14,5 @@ import java.util.BitSet;
 public interface ISpecialBakedModel extends IBakedModel {
 
     @Nonnull
-    BitSet getCacheKeys(@Nonnull ISpecialState state);
+    ModelCollector collectModels(@Nonnull ISpecialState state);
 }

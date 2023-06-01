@@ -1,5 +1,6 @@
 package gregtech.common.blocks.special;
 
+import gregtech.client.model.special.ModelCollector;
 import gregtech.integration.ctm.ConnectionCacheTextureType;
 import gregtech.integration.ctm.ISpecialBakedModel;
 import net.minecraft.block.properties.IProperty;
@@ -8,6 +9,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.common.property.IUnlistedProperty;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import team.chisel.ctm.api.texture.ICTMTexture;
 import team.chisel.ctm.api.util.RenderContextList;
 import team.chisel.ctm.client.model.AbstractCTMBakedModel;
@@ -30,6 +33,9 @@ public class CTMSpecialState extends CTMExtendedState implements ISpecialState {
     @Nullable
     private RenderContextList ctxCache;
 
+    @SideOnly(Side.CLIENT)
+    private ModelCollector modelStateCache;
+
     public CTMSpecialState(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         super(state, world, pos);
         this.delegate = state;
@@ -47,7 +53,10 @@ public class CTMSpecialState extends CTMExtendedState implements ISpecialState {
     public RenderContextList getContextList(IBlockState state, AbstractCTMBakedModel model) {
         if (ctxCache == null) {
             if (model.getParent() instanceof ISpecialBakedModel specialBakedModel) {
-                BitSet cacheKeys = specialBakedModel.getCacheKeys(this);
+                if (this.modelStateCache == null) {
+                    this.modelStateCache = specialBakedModel.collectModels(this);
+                }
+                BitSet cacheKeys = this.modelStateCache.toCacheKeys();
                 List<ICTMTexture<?>> tex = new ArrayList<>(model.getCTMTextures());
                 long[] data = cacheKeys.toLongArray();
                 for (int i = 0; i < data.length; i++) {
@@ -59,6 +68,19 @@ public class CTMSpecialState extends CTMExtendedState implements ISpecialState {
             }
         }
         return ctxCache;
+    }
+
+    @Nullable
+    @Override
+    @SideOnly(Side.CLIENT)
+    public ModelCollector getModelStateCache() {
+        return modelStateCache;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void setModelStateCache(@Nullable ModelCollector modelStateCache) {
+        this.modelStateCache = modelStateCache;
     }
 
     @Nonnull

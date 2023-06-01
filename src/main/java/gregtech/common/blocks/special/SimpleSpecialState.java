@@ -1,6 +1,7 @@
 package gregtech.common.blocks.special;
 
 import com.google.common.collect.ImmutableMap;
+import gregtech.client.model.special.ModelCollector;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.EnumPushReaction;
 import net.minecraft.block.material.MapColor;
@@ -46,6 +47,9 @@ public class SimpleSpecialState extends BlockStateBase implements ISpecialState 
     @Nonnull
     private final BlockPos pos;
 
+    @SideOnly(Side.CLIENT)
+    private ModelCollector modelStateCache;
+
     public SimpleSpecialState(@Nonnull IBlockState delegate, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         this.delegate = delegate;
         this.extState = delegate instanceof IExtendedBlockState ? (IExtendedBlockState) delegate : null;
@@ -63,6 +67,19 @@ public class SimpleSpecialState extends BlockStateBase implements ISpecialState 
     @Override
     public BlockPos getPos() {
         return pos;
+    }
+
+    @Nullable
+    @Override
+    @SideOnly(Side.CLIENT)
+    public ModelCollector getModelStateCache() {
+        return modelStateCache;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void setModelStateCache(@Nullable ModelCollector modelStateCache) {
+        this.modelStateCache = modelStateCache;
     }
 
     @Nullable

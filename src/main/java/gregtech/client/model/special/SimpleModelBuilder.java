@@ -1,4 +1,4 @@
-package gregtech.client.model;
+package gregtech.client.model.special;
 
 import net.minecraft.client.renderer.block.model.BlockFaceUV;
 import net.minecraft.client.renderer.block.model.BlockPart;

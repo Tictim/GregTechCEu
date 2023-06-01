@@ -3,6 +3,7 @@ package gregtech.client.model;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonParseException;
 import gregtech.api.GTValues;
+import gregtech.client.model.special.frame.FrameModel;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
