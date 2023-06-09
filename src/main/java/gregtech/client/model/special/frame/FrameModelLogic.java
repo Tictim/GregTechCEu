@@ -1,6 +1,7 @@
 package gregtech.client.model.special.frame;
 
 import gregtech.api.unification.material.Material;
+import gregtech.client.model.special.EnumIndexedPart;
 import gregtech.client.model.special.IModelLogic;
 import gregtech.client.model.special.ModelCollector;
 import gregtech.client.model.special.WorldContext;
@@ -21,13 +22,17 @@ import static net.minecraft.util.EnumFacing.VALUES;
 
 public class FrameModelLogic implements IModelLogic {
 
-    private final int[] faces;
-    private final int[] slimEdges;
-    private final int[] wideEdges;
-    private final int[] slimVertices;
-    private final int[] wideVertices;
+    private final EnumIndexedPart<EnumFacing> faces;
+    private final EnumIndexedPart<CubeEdge> slimEdges;
+    private final EnumIndexedPart<CubeEdge> wideEdges;
+    private final EnumIndexedPart<CubeVertex> slimVertices;
+    private final EnumIndexedPart<CubeVertex> wideVertices;
 
-    public FrameModelLogic(int[] faces, int[] slimEdges, int[] wideEdges, int[] slimVertices, int[] wideVertices) {
+    public FrameModelLogic(@Nonnull EnumIndexedPart<EnumFacing> faces,
+                           @Nonnull EnumIndexedPart<CubeEdge> slimEdges,
+                           @Nonnull EnumIndexedPart<CubeEdge> wideEdges,
+                           @Nonnull EnumIndexedPart<CubeVertex> slimVertices,
+                           @Nonnull EnumIndexedPart<CubeVertex> wideVertices) {
         this.faces = faces;
         this.slimEdges = slimEdges;
         this.wideEdges = wideEdges;
@@ -39,7 +44,7 @@ public class FrameModelLogic implements IModelLogic {
     public void collectModels(@Nonnull ModelCollector collector, @Nullable WorldContext ctx) {
         if (ctx == null) {
             for (EnumFacing facing : VALUES) {
-                collector.includePart(this.faces[facing.ordinal()]);
+                collector.includePart(this.faces.getPart(facing));
             }
             return;
         }
@@ -52,7 +57,7 @@ public class FrameModelLogic implements IModelLogic {
             sideConnections[facing.ordinal()] = sideShown;
 
             if (sideShown == FrameConnection.NONE) {
-                collector.includePart(this.faces[facing.ordinal()]);
+                collector.includePart(this.faces.getPart(facing));
             }
         }
 
@@ -63,8 +68,8 @@ public class FrameModelLogic implements IModelLogic {
             edgeParts[edge.ordinal()] = edgePart;
 
             switch (edgePart) {
-                case SLIM -> collector.includePart(this.slimEdges[edge.ordinal()]);
-                case WIDE -> collector.includePart(this.wideEdges[edge.ordinal()]);
+                case SLIM -> collector.includePart(this.slimEdges.getPart(edge));
+                case WIDE -> collector.includePart(this.wideEdges.getPart(edge));
             }
         }
 
@@ -72,8 +77,8 @@ public class FrameModelLogic implements IModelLogic {
             FramePart vertexPart = computeVertex(ctx, vertex, sideConnections, edgeParts);
 
             switch (vertexPart) {
-                case SLIM -> collector.includePart(this.slimVertices[vertex.ordinal()]);
-                case WIDE -> collector.includePart(this.wideVertices[vertex.ordinal()]);
+                case SLIM -> collector.includePart(this.slimVertices.getPart(vertex));
+                case WIDE -> collector.includePart(this.wideVertices.getPart(vertex));
             }
         }
     }

@@ -1,53 +1,29 @@
 package gregtech.client.model.special.frame;
 
+import gregtech.client.model.SimpleModel;
+import gregtech.client.model.special.IModeLogicProvider;
 import gregtech.client.model.special.IModelLogic;
-import gregtech.client.model.special.SimpleModel;
-import gregtech.client.model.special.SpecialModel;
+import gregtech.client.model.special.ModelPartRegistry;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.client.model.IModel;
 
 import javax.annotation.Nonnull;
 
-import static net.minecraft.util.EnumFacing.VALUES;
+public final class FrameModelLogicProvider implements IModeLogicProvider {
 
-public class FrameModel extends SpecialModel {
+    public static final FrameModelLogicProvider INSTANCE = new FrameModelLogicProvider();
 
-    public FrameModel() {}
-
-    protected FrameModel(@Nonnull FrameModel orig) {
-        super(orig);
-    }
+    private FrameModelLogicProvider() {}
 
     @Nonnull
     @Override
-    protected IModelLogic buildModelLogic() {
-        int[] faces = new int[EnumFacing.values().length];
-        int[] slimEdges = new int[CubeEdge.values().length];
-        int[] wideEdges = new int[CubeEdge.values().length];
-        int[] slimVertices = new int[CubeVertex.values().length];
-        int[] wideVertices = new int[CubeVertex.values().length];
-
-        for (EnumFacing side : VALUES) {
-            faces[side.ordinal()] = registerPart(sideModel(side));
-        }
-
-        for (CubeEdge edge : CubeEdge.values()) {
-            slimEdges[edge.ordinal()] = registerPart(edgeModel(edge, 1));
-            wideEdges[edge.ordinal()] = registerPart(edgeModel(edge, 2));
-        }
-
-        for (CubeVertex vertex : CubeVertex.values()) {
-            slimVertices[vertex.ordinal()] = registerPart(vertexModel(vertex, 1));
-            wideVertices[vertex.ordinal()] = registerPart(vertexModel(vertex, 2));
-        }
-
-        return new FrameModelLogic(faces, slimEdges, wideEdges, slimVertices, wideVertices);
-    }
-
-    @Nonnull
-    @Override
-    protected FrameModel copy() {
-        return new FrameModel(this);
+    public IModelLogic createLogic(@Nonnull ModelPartRegistry registry) {
+        return new FrameModelLogic(
+                registry.registerPart(EnumFacing.class, FrameModelLogicProvider::sideModel),
+                registry.registerPart(CubeEdge.class, e -> edgeModel(e, 1)),
+                registry.registerPart(CubeEdge.class, e1 -> edgeModel(e1, 2)),
+                registry.registerPart(CubeVertex.class, v -> vertexModel(v, 1)),
+                registry.registerPart(CubeVertex.class, v1 -> vertexModel(v1, 2)));
     }
 
     private static IModel sideModel(EnumFacing side) {

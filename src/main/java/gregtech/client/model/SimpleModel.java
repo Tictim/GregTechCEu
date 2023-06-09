@@ -1,7 +1,7 @@
-package gregtech.client.model.special;
+package gregtech.client.model;
 
 import com.google.common.collect.ImmutableMap;
-import gregtech.client.model.ModelFactory;
+import gregtech.client.model.special.ModelTextureMapping;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.client.renderer.block.model.*;

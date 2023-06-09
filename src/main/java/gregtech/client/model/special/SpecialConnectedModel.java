@@ -29,18 +29,18 @@ import java.util.stream.Collectors;
 public class SpecialConnectedModel implements IModelCTM {
 
     @Nullable
-    public static IBakedModel bakeConnectedTextureModel(@Nonnull SpecialModel specialModel,
+    public static IBakedModel bakeConnectedTextureModel(@Nonnull IModel model,
                                                         @Nonnull IModelState state,
                                                         @Nonnull VertexFormat format,
                                                         @Nonnull Function<ResourceLocation, TextureAtlasSprite> bakedTextureGetter,
-                                                        @Nonnull List<IModel> parts,
+                                                        @Nonnull IModel[] parts,
                                                         @Nonnull IModelLogic modelLogic,
                                                         @Nonnull TextureAtlasSprite particleTexture,
                                                         boolean ambientOcclusion,
                                                         boolean gui3d) {
         boolean hasConnectedTexture = false;
 
-        for (ResourceLocation texture : specialModel.getTextures()) {
+        for (ResourceLocation texture : model.getTextures()) {
             IMetadataSectionCTM meta;
             try {
                 meta = ResourceUtil.getMetadata(texture);
@@ -59,7 +59,7 @@ public class SpecialConnectedModel implements IModelCTM {
         return new ModelBakedCTM(
                 new SpecialConnectedModel(textureGetter.textures, textureGetter.layers),
                 new SpecialBakedModel(
-                        parts.stream()
+                        Arrays.stream(parts)
                                 .map(e -> e.bake(state, format, textureGetter))
                                 .collect(Collectors.toList()),
                         modelLogic,

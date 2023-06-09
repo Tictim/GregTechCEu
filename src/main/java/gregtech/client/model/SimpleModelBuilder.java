@@ -1,4 +1,4 @@
-package gregtech.client.model.special;
+package gregtech.client.model;
 
 import net.minecraft.client.renderer.block.model.BlockFaceUV;
 import net.minecraft.client.renderer.block.model.BlockPart;
@@ -9,10 +9,16 @@ import org.lwjgl.util.vector.Vector3f;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Predicate;
 
 /**
- * Simple model builder (this is a very helpful documentation)
+ * Simple model builder (TODO this is a very helpful documentation)
  */
 public final class SimpleModelBuilder {
 
@@ -57,6 +63,18 @@ public final class SimpleModelBuilder {
         private BlockPartRotation rotation = null;
         private boolean shade = true;
 
+        @Nonnull
+        public Vector3f from() {
+            if (from == null) throw new IllegalStateException("Property 'to' not set");
+            return from;
+        }
+
+        @Nonnull
+        public Vector3f to() {
+            if (to == null) throw new IllegalStateException("Property 'to' not set");
+            return to;
+        }
+
         public PartBuilder from(float x, float y, float z) {
             this.from = new Vector3f(x, y, z);
             return this;
@@ -74,6 +92,15 @@ public final class SimpleModelBuilder {
         public FaceBuilder forSide(@Nonnull EnumFacing... sides) {
             if (sides.length == 0) throw new IllegalArgumentException("No side selected");
             return new FaceBuilder(EnumSet.of(sides[0], sides));
+        }
+
+        public FaceBuilder forSide(@Nonnull Predicate<EnumFacing> facingPredicate) {
+            EnumSet<EnumFacing> facings = EnumSet.noneOf(EnumFacing.class);
+            for (EnumFacing facing : EnumFacing.VALUES) {
+                if (facingPredicate.test(facing)) facings.add(facing);
+            }
+            if (facings.isEmpty()) throw new IllegalArgumentException("None of the facings match given condition");
+            return new FaceBuilder(facings);
         }
 
         public PartBuilder setRotation(float originX, float originY, float originZ,

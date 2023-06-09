@@ -2,6 +2,7 @@ package gregtech.client.model.special;
 
 import com.google.common.collect.ImmutableMap;
 import gregtech.api.GTValues;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.vertex.VertexFormat;
@@ -10,108 +11,72 @@ import net.minecraftforge.client.model.IModel;
 import net.minecraftforge.common.model.IModelState;
 import net.minecraftforge.fml.common.Loader;
 
-import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public abstract class SpecialModel implements IModel {
+public class SpecialModel implements IModel {
 
-    private final List<IModel> parts;
+    public final IModelLogic modelLogic;
+    private final IModel[] parts;
 
-    protected boolean ambientOcclusion;
-    protected boolean gui3d;
-    protected boolean uvLock;
-
-    @Nullable
-    protected String particleTexture;
+    private boolean ambientOcclusion;
+    private boolean gui3d;
+    private boolean uvLock;
 
     private ModelTextureMapping textureMappings;
 
-    private IModelLogic modelLogic;
-    private boolean modifiable;
+    public SpecialModel(@Nonnull IModeLogicProvider logicProvider) {
+        ModelPartRegistry reg = new ModelPartRegistry();
+        this.modelLogic = logicProvider.createLogic(reg);
+        this.parts = reg.parts().toArray(new IModel[0]);
+        Map<String, String> textureMap = logicProvider.getDefaultTextureMappings();
+        this.textureMappings = textureMap.isEmpty() ? ModelTextureMapping.EMPTY : new ModelTextureMapping(textureMap);
 
-    public SpecialModel() {
-        this.parts = new ArrayList<>();
-        this.ambientOcclusion = true;
-        this.gui3d = true;
-        this.uvLock = false;
-        this.particleTexture = "#particle";
-        this.textureMappings = ModelTextureMapping.EMPTY;
+        this.ambientOcclusion = reg.ambientOcclusion();
+        this.gui3d = reg.gui3d();
+        this.uvLock = reg.uvLock();
     }
 
     protected SpecialModel(@Nonnull SpecialModel orig) {
-        orig.initModelLogic();
         this.parts = orig.parts;
         this.ambientOcclusion = orig.ambientOcclusion;
         this.gui3d = orig.gui3d;
         this.uvLock = orig.uvLock;
-        this.particleTexture = orig.particleTexture;
         this.textureMappings = orig.textureMappings;
         this.modelLogic = orig.modelLogic;
-        this.modifiable = false;
-    }
-
-    private void initModelLogic() {
-        if (this.modelLogic == null) {
-            this.modifiable = true;
-            this.modelLogic = buildModelLogic();
-            Objects.requireNonNull(this.modelLogic, "buildModelLogic() returned null");
-            this.modifiable = false;
-        }
     }
 
     @Nonnull
-    public final IModelLogic getModelLogic() {
-        initModelLogic();
-        return this.modelLogic;
-    }
-
-    @Nonnull
-    protected abstract IModelLogic buildModelLogic();
-
-    @Nonnull
-    protected abstract SpecialModel copy();
-
-    @CheckReturnValue
-    protected final int registerPart(@Nonnull IModel model) {
-        if (!this.modifiable) {
-            throw new IllegalStateException("Part registration of SpecialModel must be done in #buildModelLogic() call.");
-        }
-        this.parts.add(Objects.requireNonNull(model, "model == null"));
-        return parts.size() - 1;
-    }
-
-    @Nullable
-    protected final String getParticleTexture() {
-        return particleTexture;
-    }
-
-    protected final void setParticleTexture(@Nullable String particleTexture) {
-        if (!this.modifiable) {
-            throw new IllegalStateException("Setting particle texture of SpecialModel must be done in #buildModelLogic() call.");
-        }
-        this.particleTexture = particleTexture;
+    protected SpecialModel copy() {
+        return new SpecialModel(this);
     }
 
     @Nonnull
     @Override
     public Collection<ResourceLocation> getDependencies() {
-        return this.parts.stream()
-                .flatMap(e -> e.getDependencies().stream())
-                .collect(Collectors.toSet());
+        Set<ResourceLocation> set = new ObjectOpenHashSet<>();
+        for (IModel e : this.parts) {
+            set.addAll(e.getDependencies());
+        }
+        return set;
     }
 
     @Nonnull
     @Override
     public Collection<ResourceLocation> getTextures() {
-        Set<ResourceLocation> textures = this.parts.stream()
-                .flatMap(e -> e.getTextures().stream())
-                .collect(Collectors.toSet());
-        ResourceLocation particleTexture = this.textureMappings.get(this.particleTexture);
-        if (particleTexture != null) textures.add(particleTexture);
+        Set<ResourceLocation> textures = new ObjectOpenHashSet<>();
+        for (IModel e : this.parts) {
+            textures.addAll(e.getTextures());
+        }
+        ResourceLocation particleTexture = this.textureMappings.get("#particle");
+        if (particleTexture != null) {
+            textures.add(particleTexture);
+        }
         return textures;
     }
 
@@ -158,31 +123,29 @@ public abstract class SpecialModel implements IModel {
     }
 
     private void retextureInternal(@Nonnull ImmutableMap<String, String> textures) {
-        for (int i = 0; i < this.parts.size(); i++) {
-            IModel retextured = this.parts.get(i).retexture(textures);
-            this.parts.set(i, retextured);
+        for (int i = 0; i < this.parts.length; i++) {
+            this.parts[i] = this.parts[i].retexture(textures);
         }
         this.textureMappings = new ModelTextureMapping(this.textureMappings, textures);
     }
 
     @Override
     public IBakedModel bake(@Nonnull IModelState state, @Nonnull VertexFormat format, @Nonnull Function<ResourceLocation, TextureAtlasSprite> bakedTextureGetter) {
-        initModelLogic();
         if (Loader.isModLoaded(GTValues.MODID_CTM)) {
             IBakedModel baked = SpecialConnectedModel.bakeConnectedTextureModel(this, state, format, bakedTextureGetter,
                     this.parts,
                     this.modelLogic,
-                    this.textureMappings.getTextureOrMissing(this.particleTexture, bakedTextureGetter),
+                    this.textureMappings.getTextureOrMissing("#particle", bakedTextureGetter),
                     this.ambientOcclusion,
                     this.gui3d);
             if (baked != null) return baked;
         }
         return new SpecialBakedModel(
-                this.parts.stream()
+                Arrays.stream(this.parts)
                         .map(e -> e.bake(state, format, bakedTextureGetter))
                         .collect(Collectors.toList()),
                 this.modelLogic,
-                this.textureMappings.getTextureOrMissing(this.particleTexture, bakedTextureGetter),
+                this.textureMappings.getTextureOrMissing("#particle", bakedTextureGetter),
                 this.ambientOcclusion,
                 this.gui3d);
     }
