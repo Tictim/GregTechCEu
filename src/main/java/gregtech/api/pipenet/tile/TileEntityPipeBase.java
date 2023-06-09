@@ -59,8 +59,8 @@ public abstract class TileEntityPipeBase<PipeType extends Enum<PipeType> & IPipe
         this.pipeType = tileEntity.getPipeType();
         this.paintingColor = tileEntity.getPaintingColor();
         this.connections = tileEntity.getConnections();
-        if (tileEntity instanceof TileEntityPipeBase) {
-            this.updates.putAll(((TileEntityPipeBase<?, ?>) tileEntity).updates);
+        if (tileEntity instanceof TileEntityPipeBase pipeBase) {
+            this.updates.putAll(pipeBase.updates);
         }
         tileEntity.getCoverableImplementation().transferDataTo(coverableImplementation);
         setFrameMaterial(tileEntity.getFrameMaterial());
@@ -112,9 +112,9 @@ public abstract class TileEntityPipeBase<PipeType extends Enum<PipeType> & IPipe
             return this;
         }
         //create new tickable tile entity, transfer data, and replace it
-        IPipeTile<PipeType, NodeDataType> newTile = getPipeBlock().createNewTileEntity(true);
+        TileEntityPipeBase<PipeType, NodeDataType> newTile = getPipeBlock().createNewTileEntity(true);
         newTile.transferDataFrom(this);
-        getWorld().setTileEntity(getPos(), (TileEntity) newTile);
+        getWorld().setTileEntity(getPos(), newTile);
         return newTile;
     }
 
@@ -123,7 +123,7 @@ public abstract class TileEntityPipeBase<PipeType extends Enum<PipeType> & IPipe
         if (pipeBlock == null) {
             Block block = getBlockState().getBlock();
             //noinspection unchecked
-            this.pipeBlock = block instanceof BlockPipe ? (BlockPipe<PipeType, NodeDataType, ?>) block : null;
+            this.pipeBlock = block instanceof BlockPipe blockPipe ? blockPipe : null;
         }
         return pipeBlock;
     }
@@ -172,7 +172,9 @@ public abstract class TileEntityPipeBase<PipeType extends Enum<PipeType> & IPipe
             }
             TileEntity tile = getWorld().getTileEntity(getPos().offset(side));
             // block connections if Pipe Types do not match
-            if (connected && tile instanceof IPipeTile && ((IPipeTile<?, ?>) tile).getPipeType().getClass() != this.getPipeType().getClass()) {
+            if (connected &&
+                    tile instanceof IPipeTile pipeTile &&
+                    pipeTile.getPipeType().getClass() != this.getPipeType().getClass()) {
                 return;
             }
             connections = withSideConnection(connections, side, connected);
@@ -181,8 +183,8 @@ public abstract class TileEntityPipeBase<PipeType extends Enum<PipeType> & IPipe
             writeCustomData(UPDATE_CONNECTIONS, buffer -> buffer.writeVarInt(connections));
             markDirty();
 
-            if (!fromNeighbor && tile instanceof IPipeTile) {
-                syncPipeConnections(side, (IPipeTile<?, ?>) tile);
+            if (!fromNeighbor && tile instanceof IPipeTile pipeTile) {
+                syncPipeConnections(side, pipeTile);
             }
         }
     }
@@ -257,17 +259,13 @@ public abstract class TileEntityPipeBase<PipeType extends Enum<PipeType> & IPipe
             }
             boolean tipVisible;
             if (isConnected(facing)) {
-                TileEntity neighbourTile = world.getTileEntity(pos.offset(facing));
                 tipVisible = true;
-                if (neighbourTile instanceof IPipeTile) {
-                    IPipeTile<?, ?> pipeTile = (IPipeTile<?, ?>) neighbourTile;
-                    if (pipeTile.isConnected(facing.getOpposite())) {
-                        if (pipeTile.getPipeType().getThickness() < selfThickness) {
-                            connections |= 1 << (facing.getIndex() + 6);
-                        } else {
-                            tipVisible = false;
-                        }
-                    }
+                if (world.getTileEntity(pos.offset(facing)) instanceof IPipeTile<?, ?> pipeTile &&
+                        pipeTile.isConnected(facing.getOpposite()) &&
+                        pipeTile.getPipeType().getThickness() < selfThickness) {
+                    connections |= 1 << (facing.getIndex() + 6);
+                } else {
+                    tipVisible = false;
                 }
             } else {
                 tipVisible = false;
@@ -341,7 +339,7 @@ public abstract class TileEntityPipeBase<PipeType extends Enum<PipeType> & IPipe
         if (compound.hasKey("PipeBlock", NBT.TAG_STRING)) {
             Block block = Block.REGISTRY.getObject(new ResourceLocation(compound.getString("PipeBlock")));
             //noinspection unchecked
-            this.pipeBlock = block instanceof BlockPipe ? (BlockPipe<PipeType, NodeDataType, ?>) block : null;
+            this.pipeBlock = block instanceof BlockPipe blockPipe ? blockPipe : null;
         }
         this.pipeType = getPipeTypeClass().getEnumConstants()[compound.getInteger("PipeType")];
 

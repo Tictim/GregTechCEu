@@ -1,10 +1,12 @@
-//version: 1685501596
+//version: 1685933053
 /*
  * DO NOT CHANGE THIS FILE!
  * Also, you may replace this file at any time if there is an update available.
  * Please check https://github.com/GregTechCEu/Buildscripts/blob/master/build.gradle for updates.
  */
 
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import com.gtnewhorizons.retrofuturagradle.mcp.ReobfuscatedJar
 import com.modrinth.minotaur.dependencies.ModDependency
 import com.modrinth.minotaur.dependencies.VersionDependency
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
@@ -18,12 +20,14 @@ plugins {
     id 'java'
     id 'java-library'
     id 'eclipse'
+    id 'maven-publish'
     id 'org.jetbrains.gradle.plugin.idea-ext' version '1.1.7'
     id 'com.gtnewhorizons.retrofuturagradle' version '1.3.+'
     id 'net.darkhax.curseforgegradle' version '1.0.+' apply false
     id 'com.modrinth.minotaur' version '2.7.+' apply false
     id 'com.diffplug.spotless' version '6.13.0' apply false
     id 'com.palantir.git-version' version '3.0.0' apply false
+    id 'com.github.johnrengelman.shadow' version '8.1.1' apply false
 }
 
 if (verifySettingsGradle()) {
@@ -39,7 +43,6 @@ def out = services.get(StyledTextOutputFactory).create('an-output')
 checkPropertyExists("modName")
 checkPropertyExists("modId")
 checkPropertyExists("modGroup")
-checkPropertyExists("modVersion")
 checkPropertyExists("minecraftVersion") // hard-coding this makes it harder to immediately tell what version a mod is in (even though this only really supports 1.12.2)
 checkPropertyExists("apiPackage")
 checkPropertyExists("accessTransformersFile")
@@ -49,6 +52,7 @@ checkPropertyExists("coreModClass")
 checkPropertyExists("containsMixinsAndOrCoreModOnly")
 
 // Optional properties: we can assume some default behavior if these are missing
+propertyDefaultIfUnset("modVersion", "")
 propertyDefaultIfUnset("autoUpdateBuildScript", false)
 propertyDefaultIfUnset("modArchivesBaseName", project.modId)
 propertyDefaultIfUnsetWithEnvVar("developmentEnvironmentUserName", "Developer", "DEV_USERNAME")
@@ -60,11 +64,16 @@ propertyDefaultIfUnset("includeWellKnownRepositories", true)
 propertyDefaultIfUnset("includeCommonDevEnvMods", true)
 propertyDefaultIfUnset("noPublishedSources", false)
 propertyDefaultIfUnset("forceEnableMixins", false)
-propertyDefaultIfUnset("modrinthProjectId", "")
+propertyDefaultIfUnset("usesShadowedDependencies", false)
+propertyDefaultIfUnset("minimizeShadowedDependencies", true)
+propertyDefaultIfUnset("relocateShadowedDependencies", true)
+propertyDefaultIfUnsetWithEnvVar("modrinthProjectId", "", "MODRINTH_PROJECT_ID")
 propertyDefaultIfUnset("modrinthRelations", "")
-propertyDefaultIfUnset("curseForgeProjectId", "")
+propertyDefaultIfUnsetWithEnvVar("curseForgeProjectId", "", "CURSEFORGE_PROJECT_ID")
 propertyDefaultIfUnset("curseForgeRelations", "")
 propertyDefaultIfUnset("releaseType", "release")
+propertyDefaultIfUnset("generateDefaultChangelog", false)
+propertyDefaultIfUnset("customMavenPublishUrl", "")
 propertyDefaultIfUnset("enableModernJavaSyntax", false)
 propertyDefaultIfUnset("enableSpotless", false)
 propertyDefaultIfUnset("enableJUnit", false)
@@ -74,22 +83,25 @@ propertyDefaultIfUnsetWithEnvVar("deploymentDebug", false, "DEPLOYMENT_DEBUG")
 // Project property assertions
 
 final String javaSourceDir = 'src/main/java/'
-// If Scala or Kotlin are supported, add those paths here
+final String scalaSourceDir = 'src/main/scala/'
+// If Kotlin is supported, add the path here
 
 final String modGroupPath = modGroup.toString().replace('.' as char, '/' as char)
 final String apiPackagePath = apiPackage.toString().replace('.' as char, '/' as char)
 
 String targetPackageJava = javaSourceDir + modGroupPath
-// If Scala or Kotlin are supported, add those paths here
+String targetPackageScala = scalaSourceDir + modGroupPath
+// If Kotlin is supported, add the path here
 
-if (!getFile(targetPackageJava).exists()) {
-    throw new GradleException("Could not resolve \"modGroup\"! Could not find " + targetPackageJava)
+if (!getFile(targetPackageJava).exists() && !getFile(targetPackageScala).exists()) {
+    throw new GradleException("Could not resolve \"modGroup\"! Could not find ${targetPackageJava} or ${targetPackageScala}")
 }
 
 if (apiPackage) {
     targetPackageJava = javaSourceDir + modGroupPath + '/' + apiPackagePath
-    if (!getFile(targetPackageJava).exists()) {
-        throw new GradleException("Could not resolve \"apiPackage\"! Could not find " + targetPackageJava)
+    targetPackageScala = scalaSourceDir + modGroupPath + '/' + apiPackagePath
+    if (!getFile(targetPackageJava).exists() && !getFile(targetPackageScala).exists()) {
+        throw new GradleException("Could not resolve \"apiPackage\"! Could not find ${targetPackageJava} or ${targetPackageScala}")
     }
 }
 
@@ -110,21 +122,29 @@ if (usesMixins.toBoolean()) {
     }
     final String mixinPackagePath = mixinsPackage.toString().replaceAll('\\.', '/')
     targetPackageJava = javaSourceDir + modGroupPath + '/' + mixinPackagePath
+    targetPackageScala = scalaSourceDir + modGroupPath + '/' + mixinPackagePath
     if (!getFile(targetPackageJava).exists()) {
-        throw new GradleException("Could not resolve \"mixinsPackage\"! Could not find " + targetPackageJava)
+        throw new GradleException("Could not resolve \"mixinsPackage\"! Could not find ${targetPackageJava} or ${targetPackageScala}")
     }
 }
 
 if (coreModClass) {
     final String coreModPath = coreModClass.toString().replaceAll('\\.', '/')
     String targetFileJava = javaSourceDir + modGroupPath + '/' + coreModPath + '.java'
-    if (!getFile(targetFileJava).exists()) {
+    String targetFileScala = scalaSourceDir + modGroupPath + '/' + coreModPath + '.scala'
+    String targetFileScalaJava = scalaSourceDir + modGroupPath + '/' + coreModPath + '.java'
+    if (!getFile(targetFileJava).exists() && !getFile(targetFileScala).exists() && !getFile(targetFileScalaJava).exists()) {
         throw new GradleException("Could not resolve \"coreModClass\"! Could not find " + targetFileJava)
     }
 }
 
 
 // Plugin application
+
+// Scala
+if (getFile('src/main/scala').exists()) {
+    apply plugin: 'scala'
+}
 
 // Spotless
 //noinspection GroovyAssignabilityCheck
@@ -164,12 +184,21 @@ if (enableSpotless.toBoolean()) {
             //noinspection GroovyAssignabilityCheck
             eclipse('4.19.0').configFile(formatFile)
         }
+        scala {
+            target 'src/*/scala/**/*.scala'
+            scalafmt('3.7.1')
+        }
     }
 }
 
-// Git submodules
+// Git version checking, also checking for if this is a submodule
 if (project.file('.git/HEAD').isFile() || project.file('.git').isFile()) {
     apply plugin: 'com.palantir.git-version'
+}
+
+// Shadowing
+if (usesShadowedDependencies.toBoolean()) {
+    apply plugin: 'com.github.johnrengelman.shadow'
 }
 
 
@@ -208,8 +237,25 @@ tasks.withType(JavaCompile).configureEach {
     }
 }
 
+tasks.withType(ScalaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
 
 // Configure Minecraft
+
+// Try to gather mod version from git tags if version is not manually specified
+if (!modVersion) {
+    try {
+        modVersion = gitVersion()
+    } catch (Exception ignored) {
+        out.style(Style.Failure).text(
+                "Mod version could not be determined! Property 'modVersion' is not set, and either git is not installed or no git tags exist.\n" +
+                        "Either specify a mod version in 'gradle.properties', or create at least one tag in git for this project."
+        )
+        modVersion = 'NO-GIT-TAG-SET'
+    }
+}
 
 version = modVersion
 group = modGroup
@@ -335,6 +381,13 @@ repositories {
 configurations {
     embed
     implementation.extendsFrom(embed)
+
+    if (usesShadowedDependencies.toBoolean()) {
+        for (config in [compileClasspath, runtimeClasspath, testCompileClasspath, testRuntimeClasspath]) {
+            config.extendsFrom(shadowImplementation)
+            config.extendsFrom(shadowCompile)
+        }
+    }
 }
 
 dependencies {
@@ -437,28 +490,65 @@ processResources {
     exclude('spotless.eclipseformat.xml')
 
     // replace stuff in mcmod.info, nothing else
-    filesMatching(['mcmod.info', 'pack.mcmeta']) { fcd ->
-        // replace version and mcversion
+    filesMatching('mcmod.info') { fcd ->
         fcd.expand(
                 'version': modVersion,
-                'mcversion': minecraftVersion
+                'mcversion': minecraftVersion,
+                'modid': modId,
+                'modname': modName
         )
+    }
+
+    if (accessTransformersFile) {
+        String[] ats = accessTransformersFile.split(',')
+        ats.each { at ->
+            rename "(${at})", 'META-INF/$1'
+        }
     }
 }
 
 // Automatically generate a mixin json file if it does not already exist
 tasks.register('generateAssets') {
     group = 'GT Buildscript'
-    description = 'Generates a mixin config file at /src/main/resources/mixins.modid.json if needed'
-    onlyIf {
-        usesMixins.toBoolean()
-    }
+    description = 'Generates a pack.mcmeta, mcmod.info, or mixins.{modid}.json if needed'
     doLast {
-        def mixinConfigFile = getFile("src/main/resources/mixins.${modId}.json")
-        if (!mixinConfigFile.exists()) {
-            def mixinConfigRefmap = "mixins.${modId}.refmap.json"
+        // pack.mcmeta
+        def packMcmetaFile = getFile('src/main/resources/pack.mcmeta')
+        if (!packMcmetaFile.exists()) {
+            packMcmetaFile.text = """{
+  "pack": {
+    "pack_format": 3,
+    "description": "${modName} Resource Pack"
+  }
+}
+"""
+        }
 
-            mixinConfigFile.text = """{
+        // mcmod.info
+        def mcmodInfoFile = getFile('src/main/resources/mcmod.info')
+        if (!mcmodInfoFile.exists()) {
+            mcmodInfoFile.text = """[{
+    "modid": "\${modid}",
+    "name": "\${modname}",
+    "description": "An example mod for Minecraft 1.12.2 with Forge",
+    "version": "\${version}",
+    "mcversion": "\${mcversion}",
+    "logoFile": "",
+    "url": "",
+    "authorList": [],
+    "credits": "",
+    "dependencies": []
+}]
+"""
+        }
+
+        // mixins.{modid}.json
+        if (usesMixins.toBoolean()) {
+            def mixinConfigFile = getFile("src/main/resources/mixins.${modId}.json")
+            if (!mixinConfigFile.exists()) {
+                def mixinConfigRefmap = "mixins.${modId}.refmap.json"
+
+                mixinConfigFile.text = """{
   "package": "${modGroup}.${mixinsPackage}",
   "refmap": "${mixinConfigRefmap}",
   "target": "@env(DEFAULT)",
@@ -469,33 +559,18 @@ tasks.register('generateAssets') {
   "server": []
 }
 """
+            }
         }
     }
 }
 
-if (usesMixins.toBoolean()) {
-    tasks.named('processResources').configure {
-        dependsOn('generateAssets')
-    }
+tasks.named('processResources').configure {
+    dependsOn('generateAssets')
 }
 
 jar {
     manifest {
-        def attribute_map = [:]
-        if (coreModClass) {
-            attribute_map['FMLCorePlugin'] = "${modGroup}.${coreModClass}"
-        }
-        if (!containsMixinsAndOrCoreModOnly.toBoolean() && (usesMixins.toBoolean() || coreModClass)) {
-            attribute_map['FMLCorePluginContainsFMLMod'] = true
-        }
-        if (accessTransformersFile) {
-            attribute_map['FMLAT'] = accessTransformersFile.toString()
-        }
-
-        if (usesMixins.toBoolean()) {
-            attribute_map['ForceLoadAsMod'] = !containsMixinsAndOrCoreModOnly.toBoolean()
-        }
-        attributes(attribute_map)
+        attributes(getManifestAttributes())
     }
 
     // Add all embedded dependencies into the jar
@@ -516,6 +591,66 @@ tasks.register('apiJar', Jar) {
     from(sourceSets.main.output) {
         include "${modGroupPath}/${apiPackagePath}/**"
     }
+}
+
+// Configure shadow jar task
+if (usesShadowedDependencies.toBoolean()) {
+    tasks.named('shadowJar', ShadowJar).configure {
+        manifest {
+            attributes(getManifestAttributes())
+        }
+        // Only shadow classes that are actually used, if enabled
+        if (minimizeShadowedDependencies.toBoolean()) {
+            minimize()
+        }
+        configurations = [
+                project.configurations.shadowImplementation,
+                project.configurations.shadowCompile
+        ]
+        archiveClassifier.set('dev')
+        if (relocateShadowedDependencies.toBoolean()) {
+            relocationPrefix = modGroup + '.shadow'
+            enableRelocation = true
+        }
+    }
+    configurations.runtimeElements.outgoing.artifacts.clear()
+    configurations.apiElements.outgoing.artifacts.clear()
+    configurations.runtimeElements.outgoing.artifact(tasks.named('shadowJar', ShadowJar))
+    configurations.apiElements.outgoing.artifact(tasks.named('shadowJar', ShadowJar))
+    tasks.named('jar', Jar) {
+        enabled = false
+        finalizedBy(tasks.shadowJar)
+    }
+    tasks.named('reobfJar', ReobfuscatedJar) {
+        inputJar.set(tasks.named('shadowJar', ShadowJar).flatMap({it.archiveFile}))
+    }
+    AdhocComponentWithVariants javaComponent = (AdhocComponentWithVariants) project.components.findByName('java')
+    javaComponent.withVariantsFromConfiguration(configurations.shadowRuntimeElements) {
+        skip()
+    }
+    for (runTask in ['runClient', 'runServer']) {
+        tasks.named(runTask).configure {
+            dependsOn('shadowJar')
+        }
+    }
+}
+
+def getManifestAttributes() {
+    def attributes = [:]
+    if (coreModClass) {
+        attributes['FMLCorePlugin'] = "${modGroup}.${coreModClass}"
+    }
+    if (!containsMixinsAndOrCoreModOnly.toBoolean() && (usesMixins.toBoolean() || coreModClass)) {
+        attributes['FMLCorePluginContainsFMLMod'] = true
+    }
+    if (accessTransformersFile) {
+        attributes['FMLAT'] = accessTransformersFile.toString()
+    }
+
+    if (usesMixins.toBoolean()) {
+        attributes['ForceLoadAsMod'] = !containsMixinsAndOrCoreModOnly.toBoolean()
+    }
+    return attributes
 }
 
 
@@ -579,8 +714,6 @@ idea {
 // Deployment
 
 final boolean isCIEnv = providers.environmentVariable('CI').getOrElse('false').toBoolean()
-def final changelogEnv = providers.environmentVariable('CHANGELOG_LOCATION')
-File changelogFile = new File(changelogEnv.getOrElse('CHANGELOG.md'))
 
 if (isCIEnv || deploymentDebug.toBoolean()) {
     artifacts {
@@ -593,18 +726,46 @@ if (isCIEnv || deploymentDebug.toBoolean()) {
     }
 }
 
+// Changelog generation
+tasks.register('generateChangelog') {
+    group = 'GT Buildscript'
+    description = 'Generate a default changelog of all commits since the last tagged git commit'
+    onlyIf {
+        generateDefaultChangelog.toBoolean()
+    }
+    doLast {
+        def lastTag = getLastTag()
+
+        def changelog = runShell(([
+                "git",
+                "log",
+                "--date=format:%d %b %Y",
+                "--pretty=%s - **%an** (%ad)",
+                "${lastTag}..HEAD"
+        ] + (sourceSets.main.java.srcDirs + sourceSets.main.resources.srcDirs)
+                .collect { ['--', it] }).flatten())
+
+        if (changelog) {
+            changelog = "Changes since ${lastTag}:\n${{("\n" + changelog).replaceAll("\n", "\n* ")}}"
+        }
+        def f = getFile('build/changelog.md')
+        f.write(changelog ?: 'There have been no changes.', 'UTF-8')
+    }
+}
+
 // Curseforge
 def final cfApiKey = providers.environmentVariable('CURSEFORGE_API_KEY')
 if (cfApiKey.isPresent() || deploymentDebug.toBoolean()) {
     apply plugin: 'net.darkhax.curseforgegradle'
     //noinspection UnnecessaryQualifiedReference
     tasks.register('curseforge', net.darkhax.curseforgegradle.TaskPublishCurseForge) {
-        apiToken = cfApiKey.get()
-        def projectIdVar = providers.environmentVariable('CURSEFORGE_PROJECT_ID')
+        apiToken = cfApiKey.getOrElse('debug_token')
 
-        def mainFile = upload(projectIdVar.getOrElse(curseForgeProjectId), reobfJar)
+        def mainFile = upload(curseForgeProjectId, reobfJar)
+        def changelogFile = getChangelog()
         def changelogRaw = changelogFile.exists() ? changelogFile.getText('UTF-8') : ""
 
+        mainFile.displayName = "${modName}: ${modVersion}"
         mainFile.releaseType = getReleaseType()
         mainFile.changelog = changelogRaw
         mainFile.changelogType = 'markdown'
@@ -618,7 +779,7 @@ if (cfApiKey.isPresent() || deploymentDebug.toBoolean()) {
                 if (dep.size() == 0) {
                     return
                 }
-                String parts = dep.split(':')
+                String[] parts = dep.split(':')
                 String type = parts[0], slug = parts[1]
                 if(!(type in ['requiredDependency', 'embeddedLibrary', 'optionalDependency', 'tool', 'incompatible'])) {
                     throw new Exception('Invalid Curseforge dependency type: ' + type)
@@ -635,24 +796,25 @@ if (cfApiKey.isPresent() || deploymentDebug.toBoolean()) {
         debugMode = deploymentDebug.toBoolean()
     }
     tasks.curseforge.dependsOn(build)
+    tasks.curseforge.dependsOn('generateChangelog')
 }
 
 // Modrinth
 def final modrinthApiKey = providers.environmentVariable('MODRINTH_API_KEY')
 if (modrinthApiKey.isPresent() || deploymentDebug.toBoolean()) {
     apply plugin: 'com.modrinth.minotaur'
-    def final projectIdVar = providers.environmentVariable('MODRINTH_PROJECT_ID')
+    def final changelogFile = getChangelog()
 
     modrinth {
-        token = modrinthApiKey.get()
-        projectId = projectIdVar.getOrElse(modrinthProjectId)
+        token = modrinthApiKey.getOrElse('debug_token')
+        projectId = modrinthProjectId
         changelog = changelogFile.exists() ? changelogFile.getText('UTF-8') : ""
         versionType = getReleaseType()
         versionNumber = modVersion
         gameVersions = [minecraftVersion]
         loaders = ["forge"]
         debugMode = deploymentDebug.toBoolean()
-        uploadFile = file("build/libs/${archivesBaseName}-${version}.jar")
+        uploadFile = reobfJar
         additionalFiles = getSecondaryArtifacts()
     }
     if (modrinthRelations.size() != 0) {
@@ -662,11 +824,12 @@ if (modrinthApiKey.isPresent() || deploymentDebug.toBoolean()) {
                 return
             }
             String[] parts = dep.split(':')
-            String qual = parts[0].split('-')
+            String[] qual = parts[0].split('-')
             addModrinthDep(qual[0], qual[1], parts[1])
         }
     }
     tasks.modrinth.dependsOn(build)
+    tasks.modrinth.dependsOn('generateChangelog')
 }
 
 def addModrinthDep(String scope, String type, String name) {
@@ -685,6 +848,70 @@ def addModrinthDep(String scope, String type, String name) {
             throw new Exception('Invalid modrinth dependency type: ' + type)
     }
     project.modrinth.dependencies.add(dep)
+}
+
+if (customMavenPublishUrl) {
+    String publishedVersion = modVersion
+
+    publishing {
+        publications {
+            create('maven', MavenPublication) {
+                //noinspection GroovyAssignabilityCheck
+                from components.java
+
+                if (apiPackage) {
+                    artifact apiJar
+                }
+
+                // providers is not available here, use System for getting env vars
+                groupId = System.getenv('ARTIFACT_GROUP_ID') ?: project.group
+                artifactId = System.getenv('ARTIFACT_ID') ?: project.name
+                version = System.getenv('RELEASE_VERSION') ?: publishedVersion
+            }
+        }
+
+        repositories {
+            maven {
+                url = customMavenPublishUrl
+                allowInsecureProtocol = !customMavenPublishUrl.startsWith('https')
+                credentials {
+                    username = providers.environmentVariable('MAVEN_USER').getOrElse('NONE')
+                    password = providers.environmentVariable('MAVEN_PASSWORD').getOrElse('NONE')
+                }
+            }
+        }
+    }
+}
+
+def getSecondaryArtifacts() {
+    def secondaryArtifacts = [usesShadowedDependencies.toBoolean() ? tasks.shadowJar : tasks.jar]
+    if (!noPublishedSources.toBoolean()) secondaryArtifacts += [sourcesJar]
+    if (apiPackage) secondaryArtifacts += [apiJar]
+    return secondaryArtifacts
+}
+
+def getReleaseType() {
+    String type = project.releaseType
+    if (!(type in ['release', 'beta', 'alpha'])) {
+        throw new Exception("Release type invalid! Found \"" + type + "\", allowed: \"release\", \"beta\", \"alpha\"")
+    }
+    return type
+}
+
+/*
+ * If CHANGELOG_LOCATION env var is set, that takes highest precedence.
+ * Next, if 'generateDefaultChangelog' option is enabled, use that.
+ * Otherwise, try to use a CHANGELOG.md file at root directory.
+ */
+def getChangelog() {
+    def final changelogEnv = providers.environmentVariable('CHANGELOG_LOCATION')
+    if (changelogEnv.isPresent()) {
+        return new File(changelogEnv.get())
+    }
+    if (generateDefaultChangelog.toBoolean()) {
+        return getFile('build/changelog.md')
+    }
+    return getFile('CHANGELOG.md')
 }
 
 
@@ -786,7 +1013,7 @@ tasks.register('faq') {
                 "To add new repositories to your project, place them in 'repositories.gradle'.\n" +
                 "If you need additional gradle code to run, you can place it in a file named 'addon.gradle' (or either of the above, up to you for organization).\n\n" +
                 "If your build fails to recognize the syntax of newer Java versions, enable Jabel in your 'gradle.properties' under the option name 'enableModernJavaSyntax'.\n" +
-                "To see information on how to configure your IDE properly for Java 17, see https://github.com/GregTechCEu/Buildscripts/blob/master/jabel.md\n\n" +
+                "To see information on how to configure your IDE properly for Java 17, see https://github.com/GregTechCEu/Buildscripts/blob/master/docs/jabel.md\n\n" +
                 "Report any issues or feature requests you have for this build script to https://github.com/GregTechCEu/Buildscripts/issues\n")
     }
 }
@@ -819,17 +1046,22 @@ def propertyDefaultIfUnsetWithEnvVar(String propertyName, defaultValue, String e
     }
 }
 
-def getSecondaryArtifacts() {
-    def secondaryArtifacts = [jar]
-    if (!noPublishedSources.toBoolean()) secondaryArtifacts += [sourcesJar]
-    if (apiPackage) secondaryArtifacts += [apiJar]
-    return secondaryArtifacts
+static runShell(command) {
+    def process = command.execute()
+    def outputStream = new StringBuffer()
+    def errorStream = new StringBuffer()
+    process.waitForProcessOutput(outputStream, errorStream)
+
+    errorStream.toString().with {
+        if (it) {
+            throw new GradleException("Error executing ${command}:\n> ${it}")
+        }
+    }
+    return outputStream.toString().trim()
 }
 
-def getReleaseType() {
-    String type = releaseType
-    if (!(type in ['release', 'beta', 'alpha'])) {
-        throw new Exception("Release type invalid! Found \"" + type + "\", allowed: \"release\", \"beta\", \"alpha\"")
-    }
-    return type
+def getLastTag() {
+    def githubTag = providers.environmentVariable('GITHUB_TAG')
+    return runShell('git describe --abbrev=0 --tags ' +
+            (githubTag.isPresent() ? runShell('git rev-list --tags --skip=1 --max-count=1') : ''))
 }
