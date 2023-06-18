@@ -3,6 +3,8 @@ package gregtech.client.renderer.pipe;
 import codechicken.lib.render.pipeline.ColourMultiplier;
 import codechicken.lib.texture.TextureUtils;
 import gregtech.api.GTValues;
+import codechicken.lib.vec.uv.IconTransformation;
+import gregtech.api.pipenet.block.BlockPipe;
 import gregtech.api.pipenet.block.IPipeType;
 import gregtech.api.pipenet.block.material.TileEntityMaterialPipeBase;
 import gregtech.api.pipenet.tile.IPipeTile;
@@ -29,7 +31,7 @@ public class CableRenderer extends PipeRenderer {
     private final EnumMap<Insulation, TextureAtlasSprite> dynamicWires = new EnumMap<>(Insulation.class);
 
     private CableRenderer() {
-        super("gt_cable", new ResourceLocation(GTValues.MODID, "cable"));
+        super("gt_cable", GTUtility.gregtechId("cable"));
     }
 
 

@@ -11,8 +11,11 @@ import codechicken.lib.vec.Vector3;
 import codechicken.lib.vec.uv.IconTransformation;
 import gregtech.api.GTValues;
 import gregtech.api.util.GTLog;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.ModCompatibility;
 import gregtech.client.renderer.ICCLBlockRenderer;
+import gregtech.client.renderer.ICCLBlockRenderer;
+import gregtech.client.renderer.texture.Textures;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
@@ -22,7 +25,6 @@ import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumBlockRenderType;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
@@ -35,7 +37,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
 public class CCLBlockRenderer implements ICCBlockRenderer, IItemRenderer {
-    public static final ModelResourceLocation MODEL_LOCATION = new ModelResourceLocation(new ResourceLocation(GTValues.MODID, "ccl_block"), "normal");
+    public static final ModelResourceLocation MODEL_LOCATION = new ModelResourceLocation(GTUtility.gregtechId("ccl_block"), "normal");
     public static final CCLBlockRenderer INSTANCE = new CCLBlockRenderer();
     public static EnumBlockRenderType BLOCK_RENDER_TYPE;
 
