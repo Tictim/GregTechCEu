@@ -1,10 +1,14 @@
-package gregtech.client.model.special;
+package gregtech.client.model.component;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 @FunctionalInterface
-public interface IModelLogic {
+public interface IComponentLogic {
 
     void collectModels(@Nonnull ModelCollector collector, @Nullable WorldContext ctx);
+
+    default boolean isBloomActive() {
+        return true;
+    }
 }

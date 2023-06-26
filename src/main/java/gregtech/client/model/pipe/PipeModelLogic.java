@@ -1,38 +1,102 @@
-package gregtech.client.model.special.pipe;
+package gregtech.client.model.pipe;
 
-import gregtech.client.model.special.EnumIndexedPart;
+import gregtech.api.pipenet.block.BlockPipe;
+import gregtech.api.pipenet.block.IPipeType;
+import gregtech.api.pipenet.tile.IPipeTile;
+import gregtech.client.model.component.EnumIndexedPart;
 import gregtech.client.model.special.IModelLogic;
-import gregtech.client.model.special.ModelCollector;
-import gregtech.client.model.special.WorldContext;
+import gregtech.client.model.component.ModelCollector;
+import gregtech.client.model.component.WorldContext;
+import gregtech.common.blocks.BlockFrame;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.EnumFacing;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.EnumSet;
 
-public class PipeModelLogic implements IModelLogic {
+public abstract class PipeModelLogic<PipeType extends Enum<PipeType> & IPipeType<NodeDataType>, NodeDataType> implements IModelLogic {
 
-    private static final int ITEM_MODEL_CONNECTION = 0b001100; // north and south
+    protected static final int ITEM_MODEL_CONNECTION = 0b001100; // north and south
 
-    private final int[] models;
-    private final EnumIndexedPart<EnumFacing> closedEnd;
-    private final EnumIndexedPart<EnumFacing> openEnd;
-    private final EnumIndexedPart<EnumFacing> extrusion;
+    protected final int[] base;
+    protected final EnumIndexedPart<EnumFacing> closedEnd;
+    protected final EnumIndexedPart<EnumFacing> openEnd;
+    protected final EnumIndexedPart<EnumFacing> closedExtrusion;
+    protected final EnumIndexedPart<EnumFacing> openExtrusion;
 
-    public PipeModelLogic(@Nonnull int[] models,
+    public PipeModelLogic(@Nonnull int[] base,
                           @Nonnull EnumIndexedPart<EnumFacing> closedEnd,
                           @Nonnull EnumIndexedPart<EnumFacing> openEnd,
-                          @Nonnull EnumIndexedPart<EnumFacing> extrusion) {
-        this.models = models;
+                          @Nonnull EnumIndexedPart<EnumFacing> closedExtrusion,
+                          @Nonnull EnumIndexedPart<EnumFacing> openExtrusion) {
+        this.base = base;
         this.closedEnd = closedEnd;
         this.openEnd = openEnd;
-        this.extrusion = extrusion;
+        this.closedExtrusion = closedExtrusion;
+        this.openExtrusion = openExtrusion;
     }
 
     @Override
     public void collectModels(@Nonnull ModelCollector collector, @Nullable WorldContext ctx) {
-        // TODO
+        if (ctx != null) {
+            IPipeTile<?, ?> te = getTileEntity(ctx);
+            if (te != null && isCorrectPipeType(te.getPipeType())) {
+                //noinspection unchecked
+                collectPipeModels(collector, ctx, (IPipeTile<PipeType, NodeDataType>) te);
+                return;
+            }
+        }
+        collectItemModels(collector);
     }
+
+    protected void collectPipeModels(@Nonnull ModelCollector collector,
+                                     @Nonnull WorldContext ctx,
+                                     @Nonnull IPipeTile<PipeType, NodeDataType> pipeTile) {
+
+        collector.includePart(getBlockConnection(
+                pipeTile.isConnected(EnumFacing.DOWN),
+                pipeTile.isConnected(EnumFacing.UP),
+                pipeTile.isConnected(EnumFacing.NORTH),
+                pipeTile.isConnected(EnumFacing.SOUTH),
+                pipeTile.isConnected(EnumFacing.WEST),
+                pipeTile.isConnected(EnumFacing.EAST)));
+
+        for (EnumFacing side : EnumFacing.VALUES) {
+            if (!pipeTile.isConnected(side)) continue;
+
+            if (ctx.world.getTileEntity(ctx.origin().move(side)) instanceof IPipeTile<?, ?> pipe2 &&
+                    pipe2.isConnected(side.getOpposite())) {
+                if (pipe2.getPipeType().getThickness() < pipeTile.getPipeType().getThickness()) {
+                    collector.includePart(this.closedEnd.getPart(side));
+                }
+            } else {
+                collector.includePart(this.openEnd.getPart(side));
+            }
+
+            if (frameMaterial != null && !coverAtSide && BlockFrame.shouldFrameSideBeRendered(frameMaterial, world, pos, facing)) {
+                connections |= 1 << (facing.getIndex() + 18);
+                if (tipVisible) {
+                    connections |= 1 << (facing.getIndex() + 24);
+                }
+            }
+        }
+    }
+
+    protected void collectItemModels(@Nonnull ModelCollector collector) {
+        collector.includePart(this.base[ITEM_MODEL_CONNECTION]);
+        collector.includePart(this.openEnd.getPart(EnumFacing.NORTH));
+        collector.includePart(this.openEnd.getPart(EnumFacing.SOUTH));
+    }
+
+    @Nullable
+    protected IPipeTile<?, ?> getTileEntity(@Nonnull WorldContext ctx) {
+        IBlockState state = ctx.world.getBlockState(ctx.pos);
+        return state.getBlock() instanceof BlockPipe<?, ?, ?> block ?
+                block.getPipeTileEntity(ctx.world, ctx.pos) : null;
+    }
+
+    protected abstract boolean isCorrectPipeType(@Nonnull IPipeType<?> pipeType);
 
     /**
      * @param down  If the block is connected in {@link EnumFacing#DOWN} direction
@@ -54,7 +118,7 @@ public class PipeModelLogic implements IModelLogic {
         return flag;
     }
 
-    public static int getBlockConnection(EnumFacing... connectedSides) {
+    public static int getBlockConnection(@Nonnull EnumFacing... connectedSides) {
         int flag = 0;
         for (EnumFacing connectedSide : connectedSides) {
             flag |= 1 << connectedSide.ordinal();
@@ -151,7 +215,7 @@ public class PipeModelLogic implements IModelLogic {
         return (flags & (4 | 8)) != 0;
     }
 
-    public static boolean isConnected(int connections, EnumFacing side) {
+    public static boolean isConnected(int connections, @Nonnull EnumFacing side) {
         return (connections & 1 << side.getIndex()) != 0;
     }
 }

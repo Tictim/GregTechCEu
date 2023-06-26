@@ -1,4 +1,4 @@
-package gregtech.client.model.special;
+package gregtech.client.model.component;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.block.state.IBlockState;
@@ -22,19 +22,19 @@ import team.chisel.ctm.client.util.ResourceUtil;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class SpecialConnectedModel implements IModelCTM {
 
     @Nullable
-    public static IBakedModel bakeConnectedTextureModel(@Nonnull IModel model,
+    public static IBakedModel bakeConnectedTextureModel(@Nonnull ComponentModel model,
                                                         @Nonnull IModelState state,
                                                         @Nonnull VertexFormat format,
                                                         @Nonnull Function<ResourceLocation, TextureAtlasSprite> bakedTextureGetter,
-                                                        @Nonnull IModel[] parts,
-                                                        @Nonnull IModelLogic modelLogic,
                                                         @Nonnull TextureAtlasSprite particleTexture,
                                                         boolean ambientOcclusion,
                                                         boolean gui3d) {
@@ -58,11 +58,9 @@ public class SpecialConnectedModel implements IModelCTM {
 
         return new ModelBakedCTM(
                 new SpecialConnectedModel(textureGetter.textures, textureGetter.layers),
-                new SpecialBakedModel(
-                        Arrays.stream(parts)
-                                .map(e -> e.bake(state, format, textureGetter))
-                                .collect(Collectors.toList()),
-                        modelLogic,
+                new BakedComponentModel(
+                        new BakedComponent(model, state, format, bakedTextureGetter),
+                        model.getLogic(),
                         particleTexture,
                         ambientOcclusion,
                         gui3d));
@@ -123,7 +121,7 @@ public class SpecialConnectedModel implements IModelCTM {
         private final Map<String, ICTMTexture<?>> textures = new Object2ObjectOpenHashMap<>();
         private byte layers;
 
-        private TextureGetter(Function<ResourceLocation, TextureAtlasSprite> getter) {
+        private TextureGetter(@Nonnull Function<ResourceLocation, TextureAtlasSprite> getter) {
             this.getter = getter;
         }
 

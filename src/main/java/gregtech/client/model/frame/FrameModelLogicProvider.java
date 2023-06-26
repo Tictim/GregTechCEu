@@ -1,9 +1,11 @@
-package gregtech.client.model.special.frame;
+package gregtech.client.model.frame;
 
 import gregtech.client.model.SimpleModel;
 import gregtech.client.model.special.IModeLogicProvider;
 import gregtech.client.model.special.IModelLogic;
-import gregtech.client.model.special.ModelPartRegistry;
+import gregtech.client.model.special.part.ModelPartRegistry;
+import gregtech.client.utils.CubeEdge;
+import gregtech.client.utils.CubeVertex;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.client.model.IModel;
 
@@ -13,17 +15,20 @@ public final class FrameModelLogicProvider implements IModeLogicProvider {
 
     public static final FrameModelLogicProvider INSTANCE = new FrameModelLogicProvider();
 
+    public static final int TINT_OUTER = 1;
+    public static final int TINT_INNER = 2;
+
     private FrameModelLogicProvider() {}
 
     @Nonnull
     @Override
     public IModelLogic createLogic(@Nonnull ModelPartRegistry registry) {
         return new FrameModelLogic(
-                registry.registerPart(EnumFacing.class, FrameModelLogicProvider::sideModel),
-                registry.registerPart(CubeEdge.class, e -> edgeModel(e, 1)),
-                registry.registerPart(CubeEdge.class, e1 -> edgeModel(e1, 2)),
-                registry.registerPart(CubeVertex.class, v -> vertexModel(v, 1)),
-                registry.registerPart(CubeVertex.class, v1 -> vertexModel(v1, 2)));
+                registry.registerParts(EnumFacing.class, (r, f) -> r.registerPart(sideModel(f))),
+                registry.registerParts(CubeEdge.class, (r, e) -> r.registerPart(edgeModel(e, 1))),
+                registry.registerParts(CubeEdge.class, (r, e1) -> r.registerPart(edgeModel(e1, 2))),
+                registry.registerParts(CubeVertex.class, (r, v) -> r.registerPart(vertexModel(v, 1))),
+                registry.registerParts(CubeVertex.class, (r, v1) -> r.registerPart(vertexModel(v1, 2))));
     }
 
     private static IModel sideModel(EnumFacing side) {
@@ -38,8 +43,8 @@ public final class FrameModelLogicProvider implements IModeLogicProvider {
                 .beginPart()
                 .from(x1, y1, z1)
                 .to(x2, y2, z2)
-                .forSide(side).texture(sideTexture(side)).cullFace(side).tintIndex(1).finishSide()
-                .forSide(side.getOpposite()).texture(sideTexture(side)).cullFace(side).tintIndex(2).finishSide()
+                .forSide(side).texture(sideTexture(side)).cullFace(side).tintIndex(TINT_OUTER).finishSide()
+                .forSide(side.getOpposite()).texture(sideTexture(side)).cullFace(side).tintIndex(TINT_INNER).finishSide()
                 .finishPart()
                 .build();
     }
@@ -57,7 +62,7 @@ public final class FrameModelLogicProvider implements IModeLogicProvider {
                 .from(x1, y1, z1)
                 .to(x2, y2, z2)
                 .forSide(edge.getFacingA().getOpposite(),
-                        edge.getFacingB().getOpposite()).texture("#border").tintIndex(2).finishSide()
+                        edge.getFacingB().getOpposite()).texture("#border").tintIndex(TINT_INNER).finishSide()
                 .finishPart()
                 .build();
     }
@@ -76,7 +81,7 @@ public final class FrameModelLogicProvider implements IModeLogicProvider {
                 .to(x2, y2, z2)
                 .forSide(vertex.getFacingY().getOpposite(),
                         vertex.getFacingZ().getOpposite(),
-                        vertex.getFacingX().getOpposite()).texture("#border").tintIndex(2).finishSide()
+                        vertex.getFacingX().getOpposite()).texture("#border").tintIndex(TINT_INNER).finishSide()
                 .finishPart()
                 .build();
     }

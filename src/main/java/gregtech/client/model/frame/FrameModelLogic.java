@@ -1,10 +1,12 @@
-package gregtech.client.model.special.frame;
+package gregtech.client.model.frame;
 
 import gregtech.api.unification.material.Material;
-import gregtech.client.model.special.EnumIndexedPart;
+import gregtech.client.model.component.EnumIndexedPart;
 import gregtech.client.model.special.IModelLogic;
-import gregtech.client.model.special.ModelCollector;
-import gregtech.client.model.special.WorldContext;
+import gregtech.client.model.component.ModelCollector;
+import gregtech.client.model.component.WorldContext;
+import gregtech.client.utils.CubeEdge;
+import gregtech.client.utils.CubeVertex;
 import gregtech.common.blocks.BlockFrame;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.EnumFacing;

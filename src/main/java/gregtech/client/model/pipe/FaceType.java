@@ -1,4 +1,4 @@
-package gregtech.client.model.special.pipe;
+package gregtech.client.model.pipe;
 
 public enum FaceType {
     NOT_CONNECTED_CLOSED,

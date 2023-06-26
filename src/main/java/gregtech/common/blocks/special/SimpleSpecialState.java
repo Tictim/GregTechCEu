@@ -1,7 +1,7 @@
 package gregtech.common.blocks.special;
 
 import com.google.common.collect.ImmutableMap;
-import gregtech.client.model.special.ModelCollector;
+import gregtech.client.model.component.ModelCollector;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.EnumPushReaction;
 import net.minecraft.block.material.MapColor;

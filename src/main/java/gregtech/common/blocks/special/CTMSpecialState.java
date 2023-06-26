@@ -1,6 +1,6 @@
 package gregtech.common.blocks.special;
 
-import gregtech.client.model.special.ModelCollector;
+import gregtech.client.model.component.ModelCollector;
 import gregtech.integration.ctm.ConnectionCacheTextureType;
 import gregtech.integration.ctm.ISpecialBakedModel;
 import net.minecraft.block.properties.IProperty;

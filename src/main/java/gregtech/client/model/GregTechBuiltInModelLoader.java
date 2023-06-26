@@ -3,8 +3,10 @@ package gregtech.client.model;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonParseException;
 import gregtech.api.GTValues;
+import gregtech.client.model.frame.FrameModelLogicProvider;
+import gregtech.client.model.pipe.ItemPipeModelLogicProvider;
 import gregtech.client.model.special.SpecialModel;
-import gregtech.client.model.special.frame.FrameModelLogicProvider;
+import gregtech.common.pipelike.itempipe.ItemPipeType;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
@@ -56,6 +58,12 @@ public enum GregTechBuiltInModelLoader implements ICustomModelLoader {
         else initialized = true;
 
         addPrebuiltModel("frame", new SpecialModel(FrameModelLogicProvider.INSTANCE));
+
+
+        for (ItemPipeType itemPipeType : ItemPipeType.values()) {
+            addPrebuiltModel("item_pipe/" + itemPipeType.name,
+                    new SpecialModel(new ItemPipeModelLogicProvider(itemPipeType.getThickness(), itemPipeType.isRestrictive())));
+        }
     }
 
     @Override

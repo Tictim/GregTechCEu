@@ -131,7 +131,7 @@ public final class SimpleModelBuilder {
         }
 
         @Nonnull
-        private float[] defaultUV(@Nonnull EnumFacing side) {
+        public float[] getDefaultUV(@Nonnull EnumFacing side) {
             if (from == null) {
                 throw new IllegalStateException("'from' property should be set first");
             } else if (to == null) {
@@ -221,9 +221,9 @@ public final class SimpleModelBuilder {
                     else tintIndex = blockPart != null ? blockPart.tintIndex : -1;
 
                     if (this.uv != null || this.textureRotation != null) {
-                        uv = new BlockFaceUV(this.uv != null ? this.uv : blockPart != null ? blockPart.blockFaceUV.uvs : defaultUV(side),
+                        uv = new BlockFaceUV(this.uv != null ? this.uv : blockPart != null ? blockPart.blockFaceUV.uvs : getDefaultUV(side),
                                 this.textureRotation != null ? this.textureRotation : blockPart != null ? blockPart.blockFaceUV.rotation : 0);
-                    } else uv = blockPart != null ? blockPart.blockFaceUV : new BlockFaceUV(defaultUV(side), 0);
+                    } else uv = blockPart != null ? blockPart.blockFaceUV : new BlockFaceUV(getDefaultUV(side), 0);
 
 
                     PartBuilder.this.faces.put(side, new BlockPartFace(cullFace, tintIndex, texture, uv));

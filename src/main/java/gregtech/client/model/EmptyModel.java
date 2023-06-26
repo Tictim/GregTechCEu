@@ -19,7 +19,7 @@ import java.util.function.Function;
 
 public final class EmptyModel implements IModel, IBakedModel {
 
-    private static final EmptyModel INSTANCE = new EmptyModel();
+    public static final EmptyModel INSTANCE = new EmptyModel();
 
     private EmptyModel() {}
 

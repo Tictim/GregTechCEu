@@ -1,4 +1,4 @@
-package gregtech.client.model.special.frame;
+package gregtech.client.utils;
 
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;

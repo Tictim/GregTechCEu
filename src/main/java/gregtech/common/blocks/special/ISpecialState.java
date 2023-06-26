@@ -1,6 +1,6 @@
 package gregtech.common.blocks.special;
 
-import gregtech.client.model.special.ModelCollector;
+import gregtech.client.model.component.ModelCollector;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.property.IExtendedBlockState;

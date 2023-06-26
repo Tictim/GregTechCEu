@@ -1,4 +1,4 @@
-package gregtech.client.model.special;
+package gregtech.client.model.component;
 
 import gregtech.common.blocks.special.ISpecialState;
 import net.minecraft.util.math.BlockPos;
