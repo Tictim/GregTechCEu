@@ -26,6 +26,7 @@ import net.minecraftforge.fml.common.event.*;
                 + "after:jei@[4.15.0,);"
                 + "after:crafttweaker@[4.1.20,);"
                 + "after:groovyscript@[0.4.0,);"
+                + "after:theoneprobe"
                 + "after:ctm;")
 public class GregTechMod {
 

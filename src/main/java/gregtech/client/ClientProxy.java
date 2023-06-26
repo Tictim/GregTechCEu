@@ -19,6 +19,7 @@ import gregtech.client.renderer.handler.MetaTileEntityRenderer;
 import gregtech.client.renderer.pipe.CableRenderer;
 import gregtech.client.renderer.pipe.FluidPipeRenderer;
 import gregtech.client.renderer.pipe.ItemPipeRenderer;
+import gregtech.client.renderer.pipe.OpticalPipeRenderer;
 import gregtech.client.utils.TooltipHelper;
 import gregtech.common.CommonProxy;
 import gregtech.common.ConfigHolder;
@@ -84,6 +85,7 @@ public class ClientProxy extends CommonProxy {
         CableRenderer.INSTANCE.preInit();
         FluidPipeRenderer.INSTANCE.preInit();
         ItemPipeRenderer.INSTANCE.preInit();
+        OpticalPipeRenderer.INSTANCE.preInit();
         MetaEntities.initRenderers();
         MetaFluids.initIconFluidSprites();
         TextureUtils.addIconRegister(MetaFluids::registerSprites);
