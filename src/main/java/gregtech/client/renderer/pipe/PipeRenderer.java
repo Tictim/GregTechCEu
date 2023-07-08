@@ -148,7 +148,7 @@ public abstract class PipeRenderer implements ICCBlockRenderer, IItemRenderer, I
         BlockPipe<?, ?, ?> blockFluidPipe = (BlockPipe<?, ?, ?>) ((ItemBlockPipe<?, ?>) stack.getItem()).getBlock();
         IPipeType<?> pipeType = blockFluidPipe.getItemPipeType(stack);
         if (pipeType != null) {
-            Material material = blockFluidPipe instanceof BlockMaterialPipe ? BlockMaterialPipe.getItemMaterial(stack) : null;
+            Material material = blockFluidPipe instanceof BlockMaterialPipe blockMaterialPipe ? blockMaterialPipe.getItemMaterial(stack) : null;
             PipeRenderContext renderContext = new PipeRenderContext(blockFluidPipe, null, pipeType, material,
                     0b1100, // North and South connection (index 2 & 3)
                     0,

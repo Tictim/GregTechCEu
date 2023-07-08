@@ -62,7 +62,6 @@ import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.Constants.NBT;
 import net.minecraftforge.fluids.FluidActionResult;
-import net.minecraftforge.fluids.FluidTank;
 import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandler;
@@ -339,9 +338,9 @@ public abstract class MetaTileEntity implements ICoverable, IVoidable {
             if (!notifiedItemInputList.contains(input)) {
                 this.notifiedItemInputList.add(itemHandlerModifiable);
             }
-        } else if (input instanceof FluidTank fluidTank) {
-            if (!notifiedFluidInputList.contains(fluidTank)) {
-                this.notifiedFluidInputList.add(fluidTank);
+        } else if (input instanceof IFluidHandler fluidHandler) {
+            if (!notifiedFluidInputList.contains(input)) {
+                this.notifiedFluidInputList.add(fluidHandler);
             }
         }
     }

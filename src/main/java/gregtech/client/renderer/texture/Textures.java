@@ -60,7 +60,8 @@ public class Textures {
     public static final SimpleOverlayRenderer CLEAN_STAINLESS_STEEL_CASING = new SimpleOverlayRenderer("casings/solid/machine_casing_clean_stainless_steel");
     public static final SimpleOverlayRenderer STABLE_TITANIUM_CASING = new SimpleOverlayRenderer("casings/solid/machine_casing_stable_titanium");
     public static final SimpleOverlayRenderer ROBUST_TUNGSTENSTEEL_CASING = new SimpleOverlayRenderer("casings/solid/machine_casing_robust_tungstensteel");
-    public static final SimpleOverlayRenderer ROBUST_HSSE_CASING = new SimpleOverlayRenderer("casings/solid/machine_casing_study_hsse");
+    public static final SimpleOverlayRenderer STURDY_HSSE_CASING = new SimpleOverlayRenderer("casings/solid/machine_casing_sturdy_hsse");
+    public static final SimpleOverlayRenderer PALLADIUM_SUBSTATION_CASING = new SimpleOverlayRenderer("casings/solid/machine_casing_palladium_substation");
     public static final SimpleOverlayRenderer INERT_PTFE_CASING = new SimpleOverlayRenderer("casings/solid/machine_casing_inert_ptfe");
     public static final SimpleOverlayRenderer PLASCRETE = new SimpleOverlayRenderer("casings/cleanroom/plascrete");
     public static final SimpleOverlayRenderer FUSION_TEXTURE = new SimpleOverlayRenderer("casings/fusion/machine_casing_fusion_hatch");
@@ -119,6 +120,7 @@ public class Textures {
     public static final OrientedOverlayRenderer MULTIBLOCK_TANK_OVERLAY = new OrientedOverlayRenderer("multiblock/multiblock_tank");
     public static final OrientedOverlayRenderer CHARCOAL_PILE_OVERLAY = new OrientedOverlayRenderer("multiblock/charcoal_pile_igniter");
     public static final OrientedOverlayRenderer DATA_BANK_OVERLAY = new OrientedOverlayRenderer("multiblock/data_bank");
+    public static final OrientedOverlayRenderer POWER_SUBSTATION_OVERLAY = new OrientedOverlayRenderer("multiblock/power_substation");
 
     public static final OrientedOverlayRenderer ALLOY_SMELTER_OVERLAY = new OrientedOverlayRenderer("machines/alloy_smelter");
     public static final OrientedOverlayRenderer FURNACE_OVERLAY = new OrientedOverlayRenderer("machines/furnace");
@@ -166,6 +168,7 @@ public class Textures {
     public static final OrientedOverlayRenderer WORLD_ACCELERATOR_OVERLAY = new OrientedOverlayRenderer("machines/world_accelerator");
     public static final OrientedOverlayRenderer WORLD_ACCELERATOR_TE_OVERLAY = new OrientedOverlayRenderer("machines/world_accelerator_te");
 
+
     // Simple Overlay Renderers
     public static final SimpleOverlayRenderer SCREEN = new SimpleOverlayRenderer("overlay/machine/overlay_screen");
     public static final SimpleOverlayRenderer DISPLAY = new SimpleOverlayRenderer("cover/overlay_display");
@@ -210,6 +213,9 @@ public class Textures {
     public static final ICubeRenderer TUNGSTENSTEEL_FIREBOX_ACTIVE = new FireboxActiveRenderer("casings/firebox/overlay/tungstensteel/active");
     public static final ICubeRenderer COMPUTER_CASING = new SidedCubeRenderer("casings/computer/computer_casing");
 
+    public static final AlignedOrientedOverlayRenderer LD_ITEM_PIPE = new AlignedOrientedOverlayRenderer("pipe/ld_item_pipe");
+    public static final AlignedOrientedOverlayRenderer LD_FLUID_PIPE = new AlignedOrientedOverlayRenderer("pipe/ld_fluid_pipe");
+
     public static final SimpleOverlayRenderer ROTOR_HOLDER_OVERLAY = new SimpleOverlayRenderer("overlay/machine/overlay_rotor_holder");
     public static final SimpleOverlayRenderer ADV_PUMP_OVERLAY = new SimpleOverlayRenderer("overlay/machine/overlay_adv_pump");
     public static final SimpleOverlayRenderer FILTER_OVERLAY = new SimpleOverlayRenderer("overlay/machine/overlay_filter");
@@ -227,6 +233,8 @@ public class Textures {
     public static final SimpleOverlayRenderer ENERGY_IN_HI = new SimpleOverlayRenderer("overlay/machine/overlay_energy_in_hi");
     public static final SimpleOverlayRenderer ENERGY_OUT_ULTRA = new SimpleOverlayRenderer("overlay/machine/overlay_energy_out_ultra");
     public static final SimpleOverlayRenderer ENERGY_IN_ULTRA = new SimpleOverlayRenderer("overlay/machine/overlay_energy_in_ultra");
+    public static final SimpleOverlayRenderer ENERGY_OUT_MAX = new SimpleOverlayRenderer("overlay/machine/overlay_energy_out_max");
+    public static final SimpleOverlayRenderer ENERGY_IN_MAX = new SimpleOverlayRenderer("overlay/machine/overlay_energy_in_max");
     public static final SimpleOverlayRenderer CONVEYOR_OVERLAY = new SimpleOverlayRenderer("cover/overlay_conveyor");
     public static final SimpleOverlayRenderer CONVEYOR_OVERLAY_INVERTED = new SimpleOverlayRenderer("cover/overlay_conveyor_inverted");
     public static final SimpleOverlayRenderer ARM_OVERLAY = new SimpleOverlayRenderer("cover/overlay_arm");
@@ -267,6 +275,11 @@ public class Textures {
     public static final SimpleOverlayRenderer CONVERTER_FE_OUT = new SimpleOverlayRenderer("overlay/converter/converter_fe_out");
     public static final SimpleOverlayRenderer CONVERTER_FE_IN = new SimpleOverlayRenderer("overlay/converter/converter_fe_in");
 
+    public static final SimpleOverlayRenderer ME_OUTPUT_HATCH = new SimpleOverlayRenderer("overlay/appeng/me_output_hatch");
+    public static final SimpleOverlayRenderer ME_INPUT_HATCH = new SimpleOverlayRenderer("overlay/appeng/me_input_hatch");
+    public static final SimpleOverlayRenderer ME_OUTPUT_BUS = new SimpleOverlayRenderer("overlay/appeng/me_output_bus");
+    public static final SimpleOverlayRenderer ME_INPUT_BUS = new SimpleOverlayRenderer("overlay/appeng/me_input_bus");
+  
     public static final ResourceLocation GREGTECH_CAPE_TEXTURE = gregtechId("textures/capes/gregtechcape.png");
     public static final ResourceLocation RED_CAPE_TEXTURE = gregtechId("textures/capes/redcape.png");
     public static final ResourceLocation YELLOW_CAPE_TEXTURE = gregtechId("textures/capes/yellowcape.png");

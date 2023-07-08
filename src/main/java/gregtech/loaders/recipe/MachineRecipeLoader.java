@@ -31,6 +31,7 @@ import net.minecraft.init.Items;
 import net.minecraft.item.EnumDyeColor;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.oredict.OreDictionary;
 
 import java.util.Arrays;
@@ -604,6 +605,7 @@ public class MachineRecipeLoader {
         RecipeMaps.ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(OrePrefix.plate, Materials.StainlessSteel, 6).input(OrePrefix.frameGt, Materials.StainlessSteel, 1).circuitMeta(6).outputs(MetaBlocks.METAL_CASING.getItemVariant(MetalCasingType.STAINLESS_CLEAN, 2)).duration(50).buildAndRegister();
         RecipeMaps.ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(OrePrefix.plate, Materials.Titanium, 6).input(OrePrefix.frameGt, Materials.Titanium, 1).circuitMeta(6).outputs(MetaBlocks.METAL_CASING.getItemVariant(MetalCasingType.TITANIUM_STABLE, 2)).duration(50).buildAndRegister();
         ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(plate, HSSE, 6).input(frameGt, Europium).circuitMeta(6).outputs(MetaBlocks.METAL_CASING.getItemVariant(MetalCasingType.HSSE_STURDY, 2)).duration(50).buildAndRegister();
+        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(plate, Palladium, 6).input(frameGt, Iridium).circuitMeta(6).outputs(METAL_CASING.getItemVariant(MetalCasingType.PALLADIUM_SUBSTATION, 2)).duration(50).buildAndRegister();
 
         RecipeMaps.ASSEMBLER_RECIPES.recipeBuilder().EUt(16).inputs(MetaBlocks.METAL_CASING.getItemVariant(MetalCasingType.STEEL_SOLID)).fluidInputs(Materials.Polytetrafluoroethylene.getFluid(216)).circuitMeta(6).outputs(MetaBlocks.METAL_CASING.getItemVariant(MetalCasingType.PTFE_INERT_CASING)).duration(50).buildAndRegister();
 
@@ -1070,6 +1072,13 @@ public class MachineRecipeLoader {
                 ModHandler.addShapedRecipe("multi_fluid_hatch_input_to_output_" + MULTI_FLUID_EXPORT_HATCH[i].getTier(), MULTI_FLUID_EXPORT_HATCH[i].getStackForm(),
                         "d", "B", 'B', MULTI_FLUID_IMPORT_HATCH[i].getStackForm());
             }
+        }
+
+        if (Loader.isModLoaded(MODID_APPENG)) {
+            ModHandler.addShapedRecipe("me_fluid_hatch_output_to_input", FLUID_IMPORT_HATCH_ME.getStackForm(), "d", "B", 'B', FLUID_EXPORT_HATCH_ME.getStackForm());
+            ModHandler.addShapedRecipe("me_fluid_hatch_input_to_output", FLUID_EXPORT_HATCH_ME.getStackForm(), "d", "B", 'B', FLUID_IMPORT_HATCH_ME.getStackForm());
+            ModHandler.addShapedRecipe("me_item_bus_output_to_input", ITEM_IMPORT_BUS_ME.getStackForm(), "d", "B", 'B', ITEM_EXPORT_BUS_ME.getStackForm());
+            ModHandler.addShapedRecipe("me_item_bus_input_to_output", ITEM_EXPORT_BUS_ME.getStackForm(), "d", "B", 'B', ITEM_IMPORT_BUS_ME.getStackForm());
         }
 
         if (STEAM_EXPORT_BUS != null && STEAM_IMPORT_BUS != null) {
