@@ -1,6 +1,7 @@
 package gregtech.client.model.component;
 
 import gregtech.client.utils.CubeVertex;
+import gregtech.client.utils.MatrixUtils;
 import net.minecraft.util.EnumFacing;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
@@ -13,18 +14,18 @@ import java.util.function.Consumer;
 
 public final class ComponentShape {
 
-    private final int fromX;
-    private final int fromY;
-    private final int fromZ;
-    private final int toX;
-    private final int toY;
-    private final int toZ;
+    private final float fromX;
+    private final float fromY;
+    private final float fromZ;
+    private final float toX;
+    private final float toY;
+    private final float toZ;
 
     @Nullable
     private Matrix4f transformation;
     private boolean shade = true;
 
-    public ComponentShape(int fromX, int fromY, int fromZ, int toX, int toY, int toZ) {
+    public ComponentShape(float fromX, float fromY, float fromZ, float toX, float toY, float toZ) {
         this.fromX = fromX;
         this.fromY = fromY;
         this.fromZ = fromZ;
@@ -33,27 +34,27 @@ public final class ComponentShape {
         this.toZ = toZ;
     }
 
-    public int fromX() {
+    public float fromX() {
         return fromX;
     }
 
-    public int fromY() {
+    public float fromY() {
         return fromY;
     }
 
-    public int fromZ() {
+    public float fromZ() {
         return fromZ;
     }
 
-    public int toX() {
+    public float toX() {
         return toX;
     }
 
-    public int toY() {
+    public float toY() {
         return toY;
     }
 
-    public int toZ() {
+    public float toZ() {
         return toZ;
     }
 
@@ -86,18 +87,19 @@ public final class ComponentShape {
                 vertex.getFacingX() == EnumFacing.NORTH ? fromZ : toZ
         );
         if (this.transformation != null) {
-            Vector4f vec4 = new Vector4f(pos.x - 8, pos.y - 8, pos.z - 8, 1f);
-            Matrix4f.transform(this.transformation, vec4, vec4);
-            if (Math.abs(vec4.w - 1f) > 1e-5) {
-                vec4.scale(1f / vec4.w);
-            }
-            pos.set(vec4.x + 8, vec4.y + 8, vec4.z + 8);
+            pos.x -= 8;
+            pos.y -= 8;
+            pos.z -= 8;
+            MatrixUtils.transform(this.transformation, pos, pos);
+            pos.x += 8;
+            pos.y += 8;
+            pos.z += 8;
         }
         return pos;
     }
 
     @Nonnull
-    public Vector3f getFaceDirection(@Nonnull EnumFacing facing) {
+    public Vector3f getFaceDirection(@Nonnull EnumFacing facing, boolean normalize) {
         Vector3f pos = new Vector3f(
                 facing.getXOffset(),
                 facing.getYOffset(),
@@ -110,10 +112,12 @@ public final class ComponentShape {
                 vec4.scale(1f / vec4.w);
             }
             pos.set(vec4.x, vec4.y, vec4.z);
-            if (pos.lengthSquared() != 0) {
-                pos.normalise();
-            }
         }
+
+        if (normalize && pos.lengthSquared() != 0) {
+            pos.normalise();
+        }
+
         return pos;
     }
 

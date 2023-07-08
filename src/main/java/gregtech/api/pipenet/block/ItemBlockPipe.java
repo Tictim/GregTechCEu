@@ -29,28 +29,25 @@ public class ItemBlockPipe<PipeType extends Enum<PipeType> & IPipeType<NodeDataT
     }
 
     @Override
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings("unchecked")
     public boolean placeBlockAt(@Nonnull ItemStack stack, @Nonnull EntityPlayer player, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull EnumFacing side, float hitX, float hitY, float hitZ, @Nonnull IBlockState newState) {
         boolean superVal = super.placeBlockAt(stack, player, world, pos, side, hitX, hitY, hitZ, newState);
-        if (superVal && !world.isRemote) {
-            IPipeTile selfTile = (IPipeTile) world.getTileEntity(pos);
-            if (selfTile == null) return superVal;
-            if (selfTile.getPipeBlock().canConnect(selfTile, side.getOpposite())) {
-                selfTile.setConnection(side.getOpposite(), true, false);
+        if (superVal && !world.isRemote && world.getTileEntity(pos) instanceof IPipeTile pipe) {
+            if (pipe.getPipeBlock().canConnect(pipe, side.getOpposite())) {
+                pipe.setConnection(side.getOpposite(), true, false);
             }
             for (EnumFacing facing : EnumFacing.VALUES) {
                 TileEntity te = world.getTileEntity(pos.offset(facing));
-                if (te instanceof IPipeTile) {
-                    IPipeTile otherPipe = ((IPipeTile) te);
+                if (te instanceof IPipeTile otherPipe) {
                     if (otherPipe.isConnected(facing.getOpposite())) {
-                        if (otherPipe.getPipeBlock().canPipesConnect(otherPipe, facing.getOpposite(), selfTile)) {
-                            selfTile.setConnection(facing, true, true);
+                        if (otherPipe.getPipeBlock().canPipesConnect(otherPipe, facing.getOpposite(), pipe)) {
+                            pipe.setConnection(facing, true, true);
                         } else {
                             otherPipe.setConnection(facing.getOpposite(), false, true);
                         }
                     }
-                } else if (!ConfigHolder.machines.gt6StylePipesCables && selfTile.getPipeBlock().canPipeConnectToBlock(selfTile, facing, te)) {
-                    selfTile.setConnection(facing, true, false);
+                } else if (!ConfigHolder.machines.gt6StylePipesCables && pipe.getPipeBlock().canPipeConnectToBlock(pipe, facing, te)) {
+                    pipe.setConnection(facing, true, false);
                 }
             }
         }

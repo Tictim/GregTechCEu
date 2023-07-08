@@ -3,11 +3,12 @@ package gregtech.client.model;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonParseException;
 import gregtech.api.GTValues;
+import gregtech.client.model.component.ComponentModel;
 import gregtech.client.model.frame.FrameModelLogicProvider;
 import gregtech.client.model.pipe.ItemPipeModelLogicProvider;
-import gregtech.client.model.special.SpecialModel;
 import gregtech.common.pipelike.itempipe.ItemPipeType;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
 import net.minecraft.client.renderer.block.model.ModelBlock;
@@ -23,7 +24,7 @@ import net.minecraftforge.client.model.ModelLoaderRegistry;
 import net.minecraftforge.client.model.ModelStateComposition;
 import net.minecraftforge.common.model.IModelState;
 
-import javax.annotation.Nonnull;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -36,6 +37,8 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public enum GregTechBuiltInModelLoader implements ICustomModelLoader {
     INSTANCE;
 
@@ -45,7 +48,7 @@ public enum GregTechBuiltInModelLoader implements ICustomModelLoader {
 
     private IResourceManager resourceManager;
 
-    public void addPrebuiltModel(@Nonnull String modelLocation, @Nonnull IModel model) {
+    public void addPrebuiltModel(String modelLocation, IModel model) {
         if (this.prebuiltModels.putIfAbsent(Objects.requireNonNull(modelLocation), Objects.requireNonNull(model)) != null) {
             throw new IllegalStateException("Duplicated built-in model '" + modelLocation + "'");
         }
@@ -57,12 +60,11 @@ public enum GregTechBuiltInModelLoader implements ICustomModelLoader {
         if (initialized) return;
         else initialized = true;
 
-        addPrebuiltModel("frame", new SpecialModel(FrameModelLogicProvider.INSTANCE));
-
+        addPrebuiltModel("frame", new ComponentModel(FrameModelLogicProvider.INSTANCE));
 
         for (ItemPipeType itemPipeType : ItemPipeType.values()) {
             addPrebuiltModel("item_pipe/" + itemPipeType.name,
-                    new SpecialModel(new ItemPipeModelLogicProvider(itemPipeType.getThickness(), itemPipeType.isRestrictive())));
+                    new ComponentModel(new ItemPipeModelLogicProvider(itemPipeType.getThickness(), itemPipeType.isRestrictive())));
         }
     }
 

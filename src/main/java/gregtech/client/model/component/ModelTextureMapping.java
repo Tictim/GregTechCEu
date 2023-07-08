@@ -10,7 +10,12 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -21,12 +26,12 @@ public final class ModelTextureMapping {
 
     private final List<Map<String, String>> textures;
 
-    @Nullable
+    @Nonnull
     private final Map<String, ResourceLocation> cache;
 
     private ModelTextureMapping() {
         this.textures = Collections.emptyList();
-        this.cache = null;
+        this.cache = Collections.emptyMap();
     }
 
     private ModelTextureMapping(@Nonnull List<Map<String, String>> textures) {
@@ -66,7 +71,8 @@ public final class ModelTextureMapping {
     public ResourceLocation get(@Nullable String texture) {
         if (texture == null) return null;
         if (!texture.startsWith("#")) return new ResourceLocation(texture);
-        if (this.textures.isEmpty() || this.cache == null) return null;
+        if (this.textures.isEmpty()) return null; // return null without modifying cache
+        if (this.cache.containsKey(texture)) return this.cache.get(texture);
 
         Set<String> matchHistory = null;
         Loop:
@@ -98,6 +104,12 @@ public final class ModelTextureMapping {
                 texture = resolved;
                 continue Loop;
             }
+            if (matchHistory != null) {
+                for (String t : matchHistory) {
+                    this.cache.put(t, null);
+                }
+            }
+            this.cache.put(texture, null);
             return null;
         }
     }

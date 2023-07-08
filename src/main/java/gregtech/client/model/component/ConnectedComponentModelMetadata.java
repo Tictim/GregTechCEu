@@ -28,7 +28,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class SpecialConnectedModel implements IModelCTM {
+/**
+ * Apparently the class {@link IModelCTM} does not have to function as a model? at all????
+ * The only thing we need from the class is the texture and the render layer stuff, why did they need the entire model
+ * instances for these I have no idea. Anyway, this class is a wrapper for data necessary for the actual baked models.
+ */
+public class ConnectedComponentModelMetadata implements IModelCTM {
 
     @Nullable
     public static IBakedModel bakeConnectedTextureModel(@Nonnull ComponentModel model,
@@ -57,7 +62,7 @@ public class SpecialConnectedModel implements IModelCTM {
         TextureGetter textureGetter = new TextureGetter(bakedTextureGetter);
 
         return new ModelBakedCTM(
-                new SpecialConnectedModel(textureGetter.textures, textureGetter.layers),
+                new ConnectedComponentModelMetadata(textureGetter.textures, textureGetter.layers),
                 new BakedComponentModel(
                         new BakedComponent(model, state, format, bakedTextureGetter),
                         model.getLogic(),
@@ -69,7 +74,7 @@ public class SpecialConnectedModel implements IModelCTM {
     private final Map<String, ICTMTexture<?>> textures;
     private final byte layers;
 
-    public SpecialConnectedModel(Map<String, ICTMTexture<?>> textures, byte layers) {
+    public ConnectedComponentModelMetadata(Map<String, ICTMTexture<?>> textures, byte layers) {
         this.textures = textures;
         this.layers = layers;
     }
@@ -110,8 +115,11 @@ public class SpecialConnectedModel implements IModelCTM {
         return null;
     }
 
+    @Nonnull
     @Override
-    public IBakedModel bake(IModelState state, VertexFormat format, Function<ResourceLocation, TextureAtlasSprite> bakedTextureGetter) {
+    public IBakedModel bake(@Nonnull IModelState state,
+                            @Nonnull VertexFormat format,
+                            @Nonnull Function<ResourceLocation, TextureAtlasSprite> bakedTextureGetter) {
         return ModelLoaderRegistry.getMissingModel().bake(state, format, bakedTextureGetter);
     }
 
@@ -138,7 +146,12 @@ public class SpecialConnectedModel implements IModelCTM {
                 if (meta == null) {
                     // CTM does this so it's fine I guess??
                     // noinspection ConstantConditions
-                    tex = new TextureNormal(TextureTypeNormal.INSTANCE, new TextureInfo(new TextureAtlasSprite[]{sprite}, Optional.empty(), null));
+                    tex = new TextureNormal(
+                            TextureTypeNormal.INSTANCE,
+                            new TextureInfo(
+                                    new TextureAtlasSprite[]{sprite},
+                                    Optional.empty(),
+                                    null));
                 } else {
                     tex = meta.makeTexture(sprite, getter);
                 }

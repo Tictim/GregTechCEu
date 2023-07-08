@@ -7,18 +7,18 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.vertex.VertexFormat;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.model.IModel;
 import net.minecraftforge.common.model.IModelState;
 import net.minecraftforge.fml.common.Loader;
 
+import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.ConcurrentModificationException;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class ComponentModel implements IModel {
@@ -83,7 +83,7 @@ public class ComponentModel implements IModel {
         Register register = new Register();
         this.logic = Objects.requireNonNull(this.logicProvider.buildLogic(register, this.textureMappings),
                 "Logic provider returned null");
-        this.parts = register.builder.build();
+        this.parts = register.build();
         for (var parts : this.parts) {
             for (Component part : parts) {
                 part.lock();
@@ -113,7 +113,7 @@ public class ComponentModel implements IModel {
         Set<ResourceLocation> textures = new ObjectOpenHashSet<>();
         for (var parts : getParts()) {
             for (Component part : parts) {
-                for (ComponentFace face : part.getFaces().values()) {
+                for (ComponentFace face : part.getFaces()) {
                     ResourceLocation texture = this.textureMappings.get(face.texture.texture());
                     if (texture != null) {
                         textures.add(texture);
@@ -130,7 +130,7 @@ public class ComponentModel implements IModel {
 
     @Nonnull
     @Override
-    public ComponentModel process(ImmutableMap<String, String> customData) {
+    public ComponentModel process(@Nonnull ImmutableMap<String, String> customData) {
         return this;
     }
 
@@ -168,7 +168,7 @@ public class ComponentModel implements IModel {
                             @Nonnull VertexFormat format,
                             @Nonnull Function<ResourceLocation, TextureAtlasSprite> bakedTextureGetter) {
         if (Loader.isModLoaded(GTValues.MODID_CTM)) {
-            IBakedModel baked = SpecialConnectedModel.bakeConnectedTextureModel(this, state, format, bakedTextureGetter,
+            IBakedModel baked = ConnectedComponentModelMetadata.bakeConnectedTextureModel(this, state, format, bakedTextureGetter,
                     this.textureMappings.getTextureOrMissing("#particle", bakedTextureGetter),
                     this.ambientOcclusion,
                     this.gui3d
@@ -185,42 +185,81 @@ public class ComponentModel implements IModel {
 
     public static final class Register {
 
-        private final ImmutableList.Builder<ImmutableList<Component>> builder = ImmutableList.builder();
+        private final List<List<Component>> list = new ArrayList<>();
         private int id;
 
+        @CheckReturnValue
         public int add(@Nonnull Component... components) {
-            Objects.requireNonNull(components, "part == null");
-            if (components.length == 0) {
+            return add(ImmutableList.copyOf(Objects.requireNonNull(components, "part == null")));
+        }
+
+        @CheckReturnValue
+        public int add(@Nonnull Iterable<Component> components) {
+            return add(ImmutableList.copyOf(Objects.requireNonNull(components, "part == null")));
+        }
+
+        @CheckReturnValue
+        private int add(@Nonnull ImmutableList<Component> components) {
+            if (components.isEmpty()) {
                 throw new IllegalArgumentException("part.length == 0");
             }
             for (Component component : components) {
                 Objects.requireNonNull(component, "one of the parts is null");
             }
-
-            this.builder.add(ImmutableList.copyOf(components));
+            this.list.add(components);
             return this.id++;
         }
 
         @Nonnull
-        public <E extends Enum<E>> EnumIndexedPart<E> addForEachEnum(@Nonnull Class<E> enumClass, @Nonnull BiConsumer<E, ImmutableList.Builder<Component>> factory) {
+        @CheckReturnValue
+        public <E extends Enum<E>> EnumIndexedPart<E> addForEachEnum(@Nonnull Class<E> enumClass, @Nonnull BiConsumer<E, Consumer<Component>> factory) {
             E[] enumConstants = enumClass.getEnumConstants();
             EnumIndexedPart<E> parts = new EnumIndexedPart<>(this.id);
             int expectedIndex = this.id;
             for (E e : enumConstants) {
-                ImmutableList.Builder<Component> r = new ImmutableList.Builder<>();
-                factory.accept(e, r);
-                ImmutableList<Component> components = r.build();
-                for (Component component : components) {
+                List<Component> l = new ArrayList<>();
+                factory.accept(e, l::add);
+                for (Component component : l) {
                     Objects.requireNonNull(component, "one of the parts is null");
                 }
                 if (expectedIndex != this.id) {
                     throw new ConcurrentModificationException();
                 }
-                this.builder.add(components);
+                this.list.add(l);
                 this.id++;
                 expectedIndex++;
             }
             return parts;
+        }
+
+        @Nonnull
+        @CheckReturnValue
+        public EnumIndexedPart<EnumFacing> addForEachFacing(@Nonnull BiConsumer<EnumFacing, Consumer<Component>> factory) {
+            return addForEachEnum(EnumFacing.class, factory);
+        }
+
+        @Nonnull
+        public List<Component> getParts(int id) {
+            return Collections.unmodifiableList(this.list.get(id));
+        }
+
+        public void append(int id, @Nonnull Component... components) {
+            if (id < 0) throw new IndexOutOfBoundsException("id < 0");
+            if (id >= this.list.size()) throw new IndexOutOfBoundsException("Invalid part ID " + id);
+
+            List<Component> list = this.list.get(id);
+            for (Component component : components) {
+                list.add(Objects.requireNonNull(component, "one of the parts is null"));
+            }
+        }
+
+        @Nonnull
+        private ImmutableList<ImmutableList<Component>> build() {
+            ImmutableList.Builder<ImmutableList<Component>> builder = ImmutableList.builder();
+            for (List<Component> l : this.list) {
+                builder.add(ImmutableList.copyOf(l));
+            }
+            return builder.build();
         }
     }
 }

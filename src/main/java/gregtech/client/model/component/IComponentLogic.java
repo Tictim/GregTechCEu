@@ -6,7 +6,7 @@ import javax.annotation.Nullable;
 @FunctionalInterface
 public interface IComponentLogic {
 
-    void collectModels(@Nonnull ModelCollector collector, @Nullable WorldContext ctx);
+    void computeStates(@Nonnull ModelStates states, @Nullable WorldContext ctx);
 
     default boolean isBloomActive() {
         return true;

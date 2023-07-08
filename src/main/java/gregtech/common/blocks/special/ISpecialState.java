@@ -1,6 +1,6 @@
 package gregtech.common.blocks.special;
 
-import gregtech.client.model.component.ModelCollector;
+import gregtech.client.utils.ModelStateCache;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.property.IExtendedBlockState;
@@ -8,7 +8,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 public interface ISpecialState extends IExtendedBlockState {
 
@@ -18,10 +17,7 @@ public interface ISpecialState extends IExtendedBlockState {
     @Nonnull
     BlockPos getPos();
 
-    @Nullable
+    @Nonnull
     @SideOnly(Side.CLIENT)
-    ModelCollector getModelStateCache();
-
-    @SideOnly(Side.CLIENT)
-    void setModelStateCache(@Nullable ModelCollector modelStateCache);
+    ModelStateCache getModelStateCache();
 }

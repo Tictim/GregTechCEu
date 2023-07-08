@@ -4,20 +4,26 @@ import net.minecraft.util.EnumFacing;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumMap;
-import java.util.Map;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Predicate;
 
 public final class Component {
 
     private final ComponentShape shape;
 
-    private final EnumMap<EnumFacing, ComponentFace> faces = new EnumMap<>(EnumFacing.class);
+    private final List<ComponentFace> faces = new ArrayList<>();
 
     private boolean locked;
 
     public Component(@Nonnull ComponentShape shape) {
-        this.shape = shape;
+        this.shape = Objects.requireNonNull(shape, "shape == null");
+    }
+
+    public Component(float fromX, float fromY, float fromZ, float toX, float toY, float toZ) {
+        this(new ComponentShape(fromX, fromY, fromZ, toX, toY, toZ));
     }
 
     public void lock() {
@@ -29,48 +35,80 @@ public final class Component {
 
     @Nonnull
     public ComponentShape getShape() {
-        return shape;
+        return this.shape;
     }
 
     @Nonnull
-    public Map<EnumFacing, ComponentFace> getFaces() {
-        return Collections.unmodifiableMap(faces);
+    public List<ComponentFace> getFaces() {
+        return Collections.unmodifiableList(this.faces);
     }
 
+    @Nonnull
+    public Component addAllFaces(@Nonnull ComponentTexture texture) {
+        return addAllFaces(texture, true);
+    }
+
+    @Nonnull
     public Component addAllFaces(@Nonnull ComponentTexture texture, boolean cullFace) {
         for (EnumFacing side : EnumFacing.VALUES) {
-            addFace(side, new ComponentFace(texture, cullFace && shouldFaceBeCulled(side) ? side : null));
+            if (!this.shape.faceExists(side)) continue;
+            addFace(new ComponentFace(side, texture, cullFace && shouldFaceBeCulled(side) ? side : null));
         }
         return this;
     }
 
+    @Nonnull
     public Component addAllFaces(@Nonnull ComponentTexture texture, @Nullable EnumFacing cullFace) {
         for (EnumFacing side : EnumFacing.VALUES) {
-            addFace(side, new ComponentFace(texture, cullFace));
+            if (!this.shape.faceExists(side)) continue;
+            addFace(new ComponentFace(side, texture, cullFace));
         }
         return this;
     }
 
+    @Nonnull
+    public Component addFaces(@Nonnull ComponentTexture texture, @Nonnull Predicate<EnumFacing> facingFilter) {
+        return addFaces(texture, facingFilter, true);
+    }
+
+    @Nonnull
+    public Component addFaces(@Nonnull ComponentTexture texture, @Nonnull Predicate<EnumFacing> facingFilter, boolean cullFace) {
+        for (EnumFacing side : EnumFacing.VALUES) {
+            if (!this.shape.faceExists(side) || !facingFilter.test(side)) continue;
+            addFace(new ComponentFace(side, texture, cullFace && shouldFaceBeCulled(side) ? side : null));
+        }
+        return this;
+    }
+
+    @Nonnull
+    public Component addFaces(@Nonnull ComponentTexture texture, @Nonnull Predicate<EnumFacing> facingFilter, @Nullable EnumFacing cullFace) {
+        for (EnumFacing side : EnumFacing.VALUES) {
+            if (!this.shape.faceExists(side) || !facingFilter.test(side)) continue;
+            addFace(new ComponentFace(side, texture, cullFace));
+        }
+        return this;
+    }
+
+    @Nonnull
     public Component addFace(@Nonnull ComponentTexture texture, @Nonnull EnumFacing side) {
-        addFace(side, new ComponentFace(texture, shouldFaceBeCulled(side) ? side : null));
+        addFace(new ComponentFace(side, texture, shouldFaceBeCulled(side) ? side : null));
         return this;
     }
 
+    @Nonnull
     public Component addFace(@Nonnull ComponentTexture texture, @Nonnull EnumFacing side, @Nullable EnumFacing cullFace) {
-        addFace(side, new ComponentFace(texture, cullFace));
+        addFace(new ComponentFace(side, texture, cullFace));
         return this;
     }
 
-    private void addFace(@Nonnull EnumFacing side, @Nonnull ComponentFace face) {
+    private void addFace(@Nonnull ComponentFace face) {
         if (this.locked) {
             throw new IllegalStateException("Cannot modify part instance after initial registration");
         }
-        if (!this.shape.faceExists(side)) {
-            throw new IllegalStateException("Shape " + this.shape + " doesn't have " + side + " face");
+        if (!this.shape.faceExists(face.side)) {
+            throw new IllegalStateException("Shape " + this.shape + " doesn't have " + face.side + " face");
         }
-        if (this.faces.putIfAbsent(side, face) != null) {
-            throw new IllegalStateException("Face at side '" + side + "' already set");
-        }
+        this.faces.add(face);
     }
 
     private boolean shouldFaceBeCulled(@Nonnull EnumFacing facing) {

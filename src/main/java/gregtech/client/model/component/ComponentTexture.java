@@ -1,7 +1,8 @@
 package gregtech.client.model.component;
 
+import gregtech.client.utils.MatrixUtils;
 import net.minecraft.util.EnumFacing;
-import org.lwjgl.util.vector.Matrix2f;
+import org.lwjgl.util.vector.Matrix3f;
 import org.lwjgl.util.vector.Vector2f;
 
 import javax.annotation.Nonnull;
@@ -14,7 +15,7 @@ public final class ComponentTexture {
     private final int tintIndex;
 
     @Nullable
-    private Matrix2f uvTransformation;
+    private Matrix3f uvTransformation;
 
     private boolean bloom;
 
@@ -33,7 +34,7 @@ public final class ComponentTexture {
     }
 
     @Nullable
-    public Matrix2f getUVTransformation() {
+    public Matrix3f getUVTransformation() {
         return uvTransformation;
     }
 
@@ -84,11 +85,7 @@ public final class ComponentTexture {
 
         if (this.uvTransformation != null) {
             for (Vector2f uv : uvs) {
-                uv.x -= 8;
-                uv.y -= 8;
-                Matrix2f.transform(this.uvTransformation, uv, uv);
-                uv.x += 8;
-                uv.y += 8;
+                MatrixUtils.transform(this.uvTransformation, uv, uv);
             }
         }
 
@@ -96,8 +93,8 @@ public final class ComponentTexture {
     }
 
     @Nonnull
-    public ComponentTexture setUVTransformation(@Nonnull Consumer<Matrix2f> function) {
-        Matrix2f mat = new Matrix2f();
+    public ComponentTexture setUVTransformation(@Nonnull Consumer<Matrix3f> function) {
+        Matrix3f mat = new Matrix3f();
         function.accept(mat);
         this.uvTransformation = mat;
         return this;

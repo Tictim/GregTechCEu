@@ -8,6 +8,8 @@ import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
 import codechicken.lib.vec.uv.IconTransformation;
 import gregtech.api.GTValues;
+import gregtech.api.unification.material.info.MaterialIconSet;
+import gregtech.api.unification.material.info.MaterialIconType;
 import gregtech.api.util.GTLog;
 import gregtech.client.renderer.CubeRendererState;
 import gregtech.client.renderer.ICubeRenderer;
@@ -271,15 +273,6 @@ public class Textures {
     public static final ResourceLocation GREEN_CAPE_TEXTURE = gregtechId("textures/capes/greencape.png");
 
     @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite OPTICAL_PIPE_IN;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite OPTICAL_PIPE_SIDE;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite OPTICAL_PIPE_SIDE_OVERLAY;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite OPTICAL_PIPE_SIDE_OVERLAY_ACTIVE;
-
-    @SideOnly(Side.CLIENT)
     public static ThreadLocal<CubeRendererState> RENDER_STATE;
 
     static {
@@ -298,11 +291,6 @@ public class Textures {
         for (IIconRegister iconRegister : iconRegisters) {
             iconRegister.registerIcons(textureMap);
         }
-
-        OPTICAL_PIPE_IN = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_optical_in"));
-        OPTICAL_PIPE_SIDE = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_optical_side"));
-        OPTICAL_PIPE_SIDE_OVERLAY = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_optical_side_overlay"));
-        OPTICAL_PIPE_SIDE_OVERLAY_ACTIVE = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_optical_side_overlay_active"));
 
         for (MaterialIconSet iconSet : MaterialIconSet.ICON_SETS.values()) {
             textureMap.registerSprite(MaterialIconType.frameGt.getBlockTexturePath(iconSet));

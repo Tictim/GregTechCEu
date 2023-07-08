@@ -100,10 +100,8 @@ public class BlockCable extends BlockMaterialPipe<Insulation, WireProperties, Wo
     }
 
     @Override
-    public int getLightValue(IBlockState state, IBlockAccess world, BlockPos pos) {
-        TileEntity tile = world.getTileEntity(pos);
-        if (tile instanceof TileEntityCable) {
-            TileEntityCable cable = (TileEntityCable) tile;
+    public int getLightValue(@Nonnull IBlockState state, IBlockAccess world, @Nonnull BlockPos pos) {
+        if (world.getTileEntity(pos) instanceof TileEntityCable cable) {
             int temp = cable.getTemperature();
             // max light at 5000 K
             // min light at 500 K
@@ -127,7 +125,7 @@ public class BlockCable extends BlockMaterialPipe<Insulation, WireProperties, Wo
     }
 
     @Override
-    public boolean canPipesConnect(IPipeTile<Insulation, WireProperties> selfTile, EnumFacing side, IPipeTile<?, ?> sideTile) {
+    public boolean canPipesConnect(IPipeTile<Insulation, WireProperties> selfTile, EnumFacing side, IPipeTile<Insulation, WireProperties> sideTile) {
         return selfTile instanceof TileEntityCable && sideTile instanceof TileEntityCable;
     }
 
@@ -153,12 +151,11 @@ public class BlockCable extends BlockMaterialPipe<Insulation, WireProperties, Wo
     }
 
     @Override
-    public void onEntityCollision(World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Entity entityIn) {
+    public void onEntityCollision(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Entity entityIn) {
         super.onEntityCollision(worldIn, pos, state, entityIn);
         if (worldIn.isRemote) return;
         Insulation insulation = getPipeTileEntity(worldIn, pos).getPipeType();
-        if (insulation.insulationLevel == -1 && entityIn instanceof EntityLivingBase) {
-            EntityLivingBase entityLiving = (EntityLivingBase) entityIn;
+        if (insulation.insulationLevel == -1 && entityIn instanceof EntityLivingBase entityLiving) {
             TileEntityCable cable = (TileEntityCable) getPipeTileEntity(worldIn, pos);
             if (cable != null && cable.getFrameMaterial() == null && cable.getNodeData().getLossPerBlock() > 0) {
                 long voltage = cable.getCurrentMaxVoltage();
@@ -166,8 +163,8 @@ public class BlockCable extends BlockMaterialPipe<Insulation, WireProperties, Wo
                 if (voltage > 0L && amperage > 0L) {
                     float damageAmount = (float) ((GTUtility.getTierByVoltage(voltage) + 1) * amperage * 4);
                     entityLiving.attackEntityFrom(DamageSources.getElectricDamage(), damageAmount);
-                    if (entityLiving instanceof EntityPlayerMP) {
-                        AdvancementTriggers.ELECTROCUTION_DEATH.trigger((EntityPlayerMP) entityLiving);
+                    if (entityLiving instanceof EntityPlayerMP player) {
+                        AdvancementTriggers.ELECTROCUTION_DEATH.trigger(player);
                     }
                 }
             }

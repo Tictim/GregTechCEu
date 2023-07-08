@@ -1,8 +1,6 @@
 package gregtech.client.model.component;
 
-import gregtech.client.utils.BloomEffectUtil;
 import gregtech.common.blocks.special.ISpecialState;
-import gregtech.integration.ctm.ISpecialBakedModel;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.ItemOverrideList;
@@ -13,7 +11,6 @@ import net.minecraftforge.client.MinecraftForgeClient;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.List;
 
 public final class BakedComponentModel implements ISpecialBakedModel {
@@ -36,34 +33,22 @@ public final class BakedComponentModel implements ISpecialBakedModel {
         this.gui3d = gui3d;
     }
 
+    @Nonnull
     @Override
     public List<BakedQuad> getQuads(@Nullable IBlockState state, @Nullable EnumFacing side, long rand) {
-        boolean includeBloomLayer;
-        boolean includeNonBloomLayer;
+        BlockRenderLayer renderLayer = MinecraftForgeClient.getRenderLayer();
+        boolean bloomActive = this.componentLogic.isBloomActive();
 
-        if (this.componentLogic.isBloomActive()) {
-            includeBloomLayer = MinecraftForgeClient.getRenderLayer() == BloomEffectUtil.BLOOM;
-            includeNonBloomLayer = !includeBloomLayer;
-        } else {
-            if (MinecraftForgeClient.getRenderLayer() == BloomEffectUtil.BLOOM) {
-                return Collections.emptyList();
-            }
-            includeBloomLayer = MinecraftForgeClient.getRenderLayer() == BlockRenderLayer.CUTOUT;
-            includeNonBloomLayer = true;
-        }
+        ModelStates collector;
 
         if (state instanceof ISpecialState specialState) {
-            ModelCollector modelStateCache = specialState.getModelStateCache();
-            if (modelStateCache == null) {
-                modelStateCache = collectModels(specialState);
-                specialState.setModelStateCache(modelStateCache);
-            }
-            return modelStateCache.toQuads(side, includeBloomLayer, includeNonBloomLayer);
+            collector = specialState.getModelStateCache().computeCache(this);
+        } else {
+            collector = new ModelStates(state, this.components);
+            this.componentLogic.computeStates(collector, null);
         }
 
-        ModelCollector collector = new ModelCollector(state, this.components);
-        this.componentLogic.collectModels(collector, null);
-        return collector.toQuads(side, includeBloomLayer, includeNonBloomLayer);
+        return collector.toQuads(side, renderLayer, bloomActive);
     }
 
     @Override
@@ -72,7 +57,7 @@ public final class BakedComponentModel implements ISpecialBakedModel {
     }
 
     @Override
-    public boolean isAmbientOcclusion(IBlockState state) {
+    public boolean isAmbientOcclusion(@Nonnull IBlockState state) {
         return this.ambientOcclusion;
     }
 
@@ -86,11 +71,13 @@ public final class BakedComponentModel implements ISpecialBakedModel {
         return false;
     }
 
+    @Nonnull
     @Override
     public TextureAtlasSprite getParticleTexture() {
         return this.particleTexture;
     }
 
+    @Nonnull
     @Override
     public ItemOverrideList getOverrides() {
         return ItemOverrideList.NONE;
@@ -98,9 +85,9 @@ public final class BakedComponentModel implements ISpecialBakedModel {
 
     @Nonnull
     @Override
-    public ModelCollector collectModels(@Nonnull ISpecialState state) {
-        ModelCollector collector = new ModelCollector(state, this.components);
-        this.componentLogic.collectModels(collector, new WorldContext(state));
+    public ModelStates collectModels(@Nonnull ISpecialState state) {
+        ModelStates collector = new ModelStates(state, this.components);
+        this.componentLogic.computeStates(collector, new WorldContext(state));
         return collector;
     }
 }

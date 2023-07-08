@@ -2,8 +2,8 @@ package gregtech.client.model.frame;
 
 import gregtech.api.unification.material.Material;
 import gregtech.client.model.component.EnumIndexedPart;
-import gregtech.client.model.special.IModelLogic;
-import gregtech.client.model.component.ModelCollector;
+import gregtech.client.model.component.IComponentLogic;
+import gregtech.client.model.component.ModelStates;
 import gregtech.client.model.component.WorldContext;
 import gregtech.client.utils.CubeEdge;
 import gregtech.client.utils.CubeVertex;
@@ -22,7 +22,7 @@ import java.util.ArrayDeque;
 
 import static net.minecraft.util.EnumFacing.VALUES;
 
-public class FrameModelLogic implements IModelLogic {
+public class FrameModelLogic implements IComponentLogic {
 
     private final EnumIndexedPart<EnumFacing> faces;
     private final EnumIndexedPart<CubeEdge> slimEdges;
@@ -43,10 +43,10 @@ public class FrameModelLogic implements IModelLogic {
     }
 
     @Override
-    public void collectModels(@Nonnull ModelCollector collector, @Nullable WorldContext ctx) {
+    public void computeStates(@Nonnull ModelStates states, @Nullable WorldContext ctx) {
         if (ctx == null) {
             for (EnumFacing facing : VALUES) {
-                collector.includePart(this.faces.getPart(facing));
+                states.includePart(this.faces.getPart(facing));
             }
             return;
         }
@@ -59,7 +59,7 @@ public class FrameModelLogic implements IModelLogic {
             sideConnections[facing.ordinal()] = sideShown;
 
             if (sideShown == FrameConnection.NONE) {
-                collector.includePart(this.faces.getPart(facing));
+                states.includePart(this.faces.getPart(facing));
             }
         }
 
@@ -70,8 +70,8 @@ public class FrameModelLogic implements IModelLogic {
             edgeParts[edge.ordinal()] = edgePart;
 
             switch (edgePart) {
-                case SLIM -> collector.includePart(this.slimEdges.getPart(edge));
-                case WIDE -> collector.includePart(this.wideEdges.getPart(edge));
+                case SLIM -> states.includePart(this.slimEdges.getPart(edge));
+                case WIDE -> states.includePart(this.wideEdges.getPart(edge));
             }
         }
 
@@ -79,8 +79,8 @@ public class FrameModelLogic implements IModelLogic {
             FramePart vertexPart = computeVertex(ctx, vertex, sideConnections, edgeParts);
 
             switch (vertexPart) {
-                case SLIM -> collector.includePart(this.slimVertices.getPart(vertex));
-                case WIDE -> collector.includePart(this.wideVertices.getPart(vertex));
+                case SLIM -> states.includePart(this.slimVertices.getPart(vertex));
+                case WIDE -> states.includePart(this.wideVertices.getPart(vertex));
             }
         }
     }

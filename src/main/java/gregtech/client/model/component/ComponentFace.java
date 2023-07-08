@@ -9,11 +9,14 @@ import java.util.Objects;
 public final class ComponentFace {
 
     @Nonnull
+    public final EnumFacing side;
+    @Nonnull
     public final ComponentTexture texture;
     @Nullable
     public final EnumFacing cullFace;
 
-    ComponentFace(@Nonnull ComponentTexture texture, @Nullable EnumFacing cullFace) {
+    public ComponentFace(@Nonnull EnumFacing side, @Nonnull ComponentTexture texture, @Nullable EnumFacing cullFace) {
+        this.side = Objects.requireNonNull(side, "side == null");
         this.texture = Objects.requireNonNull(texture, "texture == null");
         this.cullFace = cullFace;
     }
@@ -21,7 +24,8 @@ public final class ComponentFace {
     @Override
     public String toString() {
         return "ComponentFace{" +
-                "texture=" + texture +
+                "side=" + side +
+                ", texture=" + texture +
                 ", cullFace=" + cullFace +
                 '}';
     }

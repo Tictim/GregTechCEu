@@ -1,6 +1,5 @@
-package gregtech.integration.ctm;
+package gregtech.client.model.component;
 
-import gregtech.client.model.component.ModelCollector;
 import gregtech.common.blocks.special.ISpecialState;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 
@@ -13,5 +12,5 @@ import javax.annotation.Nonnull;
 public interface ISpecialBakedModel extends IBakedModel {
 
     @Nonnull
-    ModelCollector collectModels(@Nonnull ISpecialState state);
+    ModelStates collectModels(@Nonnull ISpecialState state);
 }

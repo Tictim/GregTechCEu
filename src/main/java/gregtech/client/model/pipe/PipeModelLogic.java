@@ -4,10 +4,9 @@ import gregtech.api.pipenet.block.BlockPipe;
 import gregtech.api.pipenet.block.IPipeType;
 import gregtech.api.pipenet.tile.IPipeTile;
 import gregtech.client.model.component.EnumIndexedPart;
-import gregtech.client.model.special.IModelLogic;
-import gregtech.client.model.component.ModelCollector;
+import gregtech.client.model.component.IComponentLogic;
+import gregtech.client.model.component.ModelStates;
 import gregtech.client.model.component.WorldContext;
-import gregtech.common.blocks.BlockFrame;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.EnumFacing;
 
@@ -15,7 +14,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.EnumSet;
 
-public abstract class PipeModelLogic<PipeType extends Enum<PipeType> & IPipeType<NodeDataType>, NodeDataType> implements IModelLogic {
+public abstract class PipeModelLogic<PipeType extends Enum<PipeType> & IPipeType<NodeDataType>, NodeDataType> implements IComponentLogic {
 
     protected static final int ITEM_MODEL_CONNECTION = 0b001100; // north and south
 
@@ -38,29 +37,28 @@ public abstract class PipeModelLogic<PipeType extends Enum<PipeType> & IPipeType
     }
 
     @Override
-    public void collectModels(@Nonnull ModelCollector collector, @Nullable WorldContext ctx) {
+    public void computeStates(@Nonnull ModelStates states, @Nullable WorldContext ctx) {
         if (ctx != null) {
             IPipeTile<?, ?> te = getTileEntity(ctx);
             if (te != null && isCorrectPipeType(te.getPipeType())) {
                 //noinspection unchecked
-                collectPipeModels(collector, ctx, (IPipeTile<PipeType, NodeDataType>) te);
+                collectPipeModels(states, ctx, (IPipeTile<PipeType, NodeDataType>) te);
                 return;
             }
         }
-        collectItemModels(collector);
+        collectItemModels(states);
     }
 
-    protected void collectPipeModels(@Nonnull ModelCollector collector,
+    protected void collectPipeModels(@Nonnull ModelStates collector,
                                      @Nonnull WorldContext ctx,
                                      @Nonnull IPipeTile<PipeType, NodeDataType> pipeTile) {
-
-        collector.includePart(getBlockConnection(
+        collector.includePart(this.base[getBlockConnection(
                 pipeTile.isConnected(EnumFacing.DOWN),
                 pipeTile.isConnected(EnumFacing.UP),
                 pipeTile.isConnected(EnumFacing.NORTH),
                 pipeTile.isConnected(EnumFacing.SOUTH),
                 pipeTile.isConnected(EnumFacing.WEST),
-                pipeTile.isConnected(EnumFacing.EAST)));
+                pipeTile.isConnected(EnumFacing.EAST))]);
 
         for (EnumFacing side : EnumFacing.VALUES) {
             if (!pipeTile.isConnected(side)) continue;
@@ -74,16 +72,20 @@ public abstract class PipeModelLogic<PipeType extends Enum<PipeType> & IPipeType
                 collector.includePart(this.openEnd.getPart(side));
             }
 
-            if (frameMaterial != null && !coverAtSide && BlockFrame.shouldFrameSideBeRendered(frameMaterial, world, pos, facing)) {
-                connections |= 1 << (facing.getIndex() + 18);
-                if (tipVisible) {
-                    connections |= 1 << (facing.getIndex() + 24);
-                }
+            if (pipeTile.getFrameMaterial() != null) {
+                // TODO
             }
+
+            // if (frameMaterial != null && !coverAtSide && BlockFrame.shouldFrameSideBeRendered(frameMaterial, world, pos, facing)) {
+            //     connections |= 1 << (facing.getIndex() + 18);
+            //     if (tipVisible) {
+            //         connections |= 1 << (facing.getIndex() + 24);
+            //     }
+            // }
         }
     }
 
-    protected void collectItemModels(@Nonnull ModelCollector collector) {
+    protected void collectItemModels(@Nonnull ModelStates collector) {
         collector.includePart(this.base[ITEM_MODEL_CONNECTION]);
         collector.includePart(this.openEnd.getPart(EnumFacing.NORTH));
         collector.includePart(this.openEnd.getPart(EnumFacing.SOUTH));

@@ -410,7 +410,7 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
     }
 
     @Override
-    public void onEntityCollision(World worldIn, BlockPos pos, IBlockState state, Entity entityIn) {
+    public void onEntityCollision(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Entity entityIn) {
         IPipeTile<PipeType, NodeDataType> pipeTile = getPipeTileEntity(worldIn, pos);
         if (pipeTile != null && pipeTile.getFrameMaterial() != null) {
             // make pipe with frame climbable
@@ -484,7 +484,7 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
     }
 
     @Override
-    public boolean recolorBlock(World world, @Nonnull BlockPos pos, @Nonnull EnumFacing side, @Nonnull EnumDyeColor color) {
+    public boolean recolorBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EnumFacing side, @Nonnull EnumDyeColor color) {
         IPipeTile<PipeType, NodeDataType> tileEntityPipe = getPipeTileEntity(world, pos);
         if (tileEntityPipe != null && tileEntityPipe.getPipeType() != null &&
                 tileEntityPipe.getPipeType().isPaintable() &&
@@ -522,13 +522,14 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
         TileEntity other = selfTile.getPipeWorld().getTileEntity(selfTile.getPipePos().offset(facing));
         if (other instanceof IPipeTile pipeTile) {
             cover = pipeTile.getCoverableImplementation().getCoverAtSide(facing.getOpposite());
+            //noinspection unchecked
             return (cover == null || cover.canPipePassThrough()) &&
                     canPipesConnect(selfTile, facing, pipeTile);
         }
         return canPipeConnectToBlock(selfTile, facing, other);
     }
 
-    public abstract boolean canPipesConnect(IPipeTile<PipeType, NodeDataType> selfTile, EnumFacing side, IPipeTile<?, ?> sideTile);
+    public abstract boolean canPipesConnect(IPipeTile<PipeType, NodeDataType> selfTile, EnumFacing side, IPipeTile<PipeType, NodeDataType> sideTile);
 
     public abstract boolean canPipeConnectToBlock(IPipeTile<PipeType, NodeDataType> selfTile, EnumFacing side, @Nullable TileEntity tile);
 

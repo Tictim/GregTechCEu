@@ -1,7 +1,8 @@
 package gregtech.common.blocks.special;
 
 import com.google.common.collect.ImmutableMap;
-import gregtech.client.model.component.ModelCollector;
+import gregtech.client.utils.ModelStateCache;
+import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.EnumPushReaction;
 import net.minecraft.block.material.MapColor;
@@ -29,11 +30,14 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class SimpleSpecialState extends BlockStateBase implements ISpecialState {
 
     @Nonnull
@@ -48,9 +52,9 @@ public class SimpleSpecialState extends BlockStateBase implements ISpecialState 
     private final BlockPos pos;
 
     @SideOnly(Side.CLIENT)
-    private ModelCollector modelStateCache;
+    private ModelStateCache modelStateCache;
 
-    public SimpleSpecialState(@Nonnull IBlockState delegate, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+    public SimpleSpecialState(IBlockState delegate, IBlockAccess world, BlockPos pos) {
         this.delegate = delegate;
         this.extState = delegate instanceof IExtendedBlockState ? (IExtendedBlockState) delegate : null;
         this.world = world;
@@ -69,17 +73,14 @@ public class SimpleSpecialState extends BlockStateBase implements ISpecialState 
         return pos;
     }
 
-    @Nullable
+    @Nonnull
     @Override
     @SideOnly(Side.CLIENT)
-    public ModelCollector getModelStateCache() {
-        return modelStateCache;
-    }
-
-    @Override
-    @SideOnly(Side.CLIENT)
-    public void setModelStateCache(@Nullable ModelCollector modelStateCache) {
-        this.modelStateCache = modelStateCache;
+    public ModelStateCache getModelStateCache() {
+        if (this.modelStateCache == null) {
+            return this.modelStateCache = new ModelStateCache(this);
+        }
+        return this.modelStateCache;
     }
 
     @Nullable
