@@ -48,7 +48,7 @@ public final class OpticalPipeRenderer extends PipeRenderer {
             openFace.addSprite(pipeTextures.get(pipeType));
             side.addSprite(opticalPipeSide);
 
-            if (ConfigHolder.client.preventAnimatedOpticalCables) {
+            if (ConfigHolder.client.preventAnimatedCables) {
                 side.addSprite(opticalPipeSideOverlay);
             } else if (context.getPipeTile() instanceof TileEntityOpticalPipe opticalPipe && opticalPipe.isActive()) {
                 side.addSprite(opticalPipeSideOverlayActive);

@@ -184,7 +184,7 @@ public abstract class PipeRenderer implements ICCBlockRenderer, IItemRenderer, I
                 sideMask[side.getIndex()] = state.shouldSideBeRendered(world, pos, side);
             }
             Textures.RENDER_STATE.set(new CubeRendererState(renderLayer, sideMask, world));
-            if (renderLayer == BlockRenderLayer.CUTOUT) {
+            if (canRenderInLayer(renderLayer)) {
                 Material material = pipeTile instanceof TileEntityMaterialPipeBase ? ((TileEntityMaterialPipeBase<?, ?>) pipeTile).getPipeMaterial() : null;
                 renderState.lightMatrix.locate(world, pos);
 
@@ -194,8 +194,12 @@ public abstract class PipeRenderer implements ICCBlockRenderer, IItemRenderer, I
                         pipeType.getThickness(),
                         GTUtility.convertRGBtoOpaqueRGBA_CL(getPipeColor(material, pipeTile.getPaintingColor())),
                         pos, renderState.lightMatrix);
-                renderPipeBlock(renderState, renderContext);
-                renderFrame(world, pos, pipeTile, renderState, renderContext);
+                if (renderLayer == BlockRenderLayer.CUTOUT) {
+                    renderPipeBlock(renderState, renderContext);
+                    renderFrame(world, pos, pipeTile, renderState, renderContext);
+                } else {
+                    renderOtherLayers(renderLayer, renderState, renderContext);
+                }
             }
 
             pipeTile.getCoverableImplementation().renderCovers(
@@ -376,6 +380,24 @@ public abstract class PipeRenderer implements ICCBlockRenderer, IItemRenderer, I
 
     @Override
     public void renderBrightness(IBlockState state, float brightness) {}
+
+    /**
+     * Override to render in other layers, e.g. emissive stuff
+     * {@link #canRenderInLayer} also need to be overridden
+     */
+    protected void renderOtherLayers(BlockRenderLayer layer, CCRenderState renderState, PipeRenderContext renderContext) {
+
+    }
+
+    /**
+     * What layers can be rendered in.
+     * See also {@link #renderOtherLayers}
+     * @param layer the current layer being rendered too
+     * @return true if this should render in {@code layer}
+     */
+    protected boolean canRenderInLayer(BlockRenderLayer layer) {
+        return layer == BlockRenderLayer.CUTOUT;
+    }
 
     @Override
     public void handleRenderBlockDamage(IBlockAccess world, BlockPos pos, IBlockState state, TextureAtlasSprite sprite, BufferBuilder buffer) {

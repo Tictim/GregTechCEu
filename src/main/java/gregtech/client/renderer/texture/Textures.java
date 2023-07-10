@@ -181,6 +181,7 @@ public class Textures {
     public static final SimpleOverlayRenderer DETECTOR_ITEM_ADVANCED = new SimpleOverlayRenderer("cover/overlay_item_detector_advanced");
     public static final SimpleOverlayRenderer DETECTOR_ACTIVITY = new SimpleOverlayRenderer("cover/overlay_activity_detector");
     public static final SimpleOverlayRenderer DETECTOR_ACTIVITY_ADVANCED = new SimpleOverlayRenderer("cover/overlay_activity_detector_advanced");
+    public static final SimpleOverlayRenderer DETECTOR_MAINTENANCE = new SimpleOverlayRenderer("cover/overlay_maintenance_detector");
     public static final SimpleOverlayRenderer CRAFTING = new SimpleOverlayRenderer("cover/overlay_crafting");
     public static final SimpleOverlayRenderer SOLAR_PANEL = new SimpleOverlayRenderer("cover/overlay_solar_panel");
     public static final SimpleOverlayRenderer INFINITE_WATER = new SimpleOverlayRenderer("cover/overlay_infinite_water");
@@ -262,6 +263,8 @@ public class Textures {
     public static final SimpleOverlayRenderer DATA_ACCESS_HATCH = new SimpleOverlayRenderer("overlay/machine/overlay_data_hatch");
     public static final SimpleOverlayRenderer CREATIVE_DATA_ACCESS_HATCH = new SimpleOverlayRenderer("overlay/machine/overlay_data_hatch_creative");
     public static final SimpleOverlayRenderer OPTICAL_DATA_ACCESS_HATCH = new SimpleOverlayRenderer("overlay/machine/overlay_data_hatch_optical");
+    public static final SimpleOverlayRenderer LASER_SOURCE = new SimpleOverlayRenderer("overlay/machine/overlay_laser_source");
+    public static final SimpleOverlayRenderer LASER_TARGET = new SimpleOverlayRenderer("overlay/machine/overlay_laser_target");
 
     public static final SimpleOverlayRenderer COVER_INTERFACE_FLUID = new SimpleOverlayRenderer("cover/cover_interface_fluid");
     public static final SimpleOverlayRenderer COVER_INTERFACE_FLUID_GLASS = new SimpleOverlayRenderer("cover/cover_interface_fluid_glass");
@@ -286,6 +289,15 @@ public class Textures {
     public static final ResourceLocation GREEN_CAPE_TEXTURE = gregtechId("textures/capes/greencape.png");
 
     @SideOnly(Side.CLIENT)
+    public static TextureAtlasSprite LASER_PIPE_IN;
+    @SideOnly(Side.CLIENT)
+    public static TextureAtlasSprite LASER_PIPE_SIDE;
+    @SideOnly(Side.CLIENT)
+    public static TextureAtlasSprite LASER_PIPE_OVERLAY;
+    @SideOnly(Side.CLIENT)
+    public static TextureAtlasSprite LASER_PIPE_OVERLAY_EMISSIVE;
+
+    @SideOnly(Side.CLIENT)
     public static ThreadLocal<CubeRendererState> RENDER_STATE;
 
     static {
@@ -304,6 +316,11 @@ public class Textures {
         for (IIconRegister iconRegister : iconRegisters) {
             iconRegister.registerIcons(textureMap);
         }
+
+        LASER_PIPE_SIDE = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_laser_side"));
+        LASER_PIPE_IN = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_laser_in"));
+        LASER_PIPE_OVERLAY = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_laser_side_overlay"));
+        LASER_PIPE_OVERLAY_EMISSIVE = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_laser_side_overlay_emissive"));
 
         for (MaterialIconSet iconSet : MaterialIconSet.ICON_SETS.values()) {
             textureMap.registerSprite(MaterialIconType.frameGt.getBlockTexturePath(iconSet));
