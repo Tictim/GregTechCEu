@@ -5,7 +5,11 @@ import com.google.gson.JsonParseException;
 import gregtech.api.GTValues;
 import gregtech.client.model.component.ComponentModel;
 import gregtech.client.model.frame.FrameModelLogicProvider;
+import gregtech.client.model.pipe.CableModelLogicProvider;
+import gregtech.client.model.pipe.FluidPipeModelLogicProvider;
 import gregtech.client.model.pipe.ItemPipeModelLogicProvider;
+import gregtech.common.pipelike.cable.Insulation;
+import gregtech.common.pipelike.fluidpipe.FluidPipeType;
 import gregtech.common.pipelike.itempipe.ItemPipeType;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import mcp.MethodsReturnNonnullByDefault;
@@ -65,6 +69,14 @@ public enum GregTechBuiltInModelLoader implements ICustomModelLoader {
         for (ItemPipeType itemPipeType : ItemPipeType.values()) {
             addPrebuiltModel("item_pipe/" + itemPipeType.name,
                     new ComponentModel(new ItemPipeModelLogicProvider(itemPipeType.getThickness(), itemPipeType.isRestrictive())));
+        }
+        for (FluidPipeType fluidPipeType : FluidPipeType.values()) {
+            addPrebuiltModel("fluid_pipe/" + fluidPipeType.name,
+                    new ComponentModel(new FluidPipeModelLogicProvider(fluidPipeType.getThickness())));
+        }
+        for (Insulation insulation : Insulation.values()) {
+            addPrebuiltModel("cable/" + insulation.name,
+                    new ComponentModel(new CableModelLogicProvider(insulation.getThickness(), insulation.isCable())));
         }
     }
 

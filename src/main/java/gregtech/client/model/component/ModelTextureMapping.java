@@ -10,12 +10,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -65,6 +60,10 @@ public final class ModelTextureMapping {
 
     public boolean has(@Nullable String texture) {
         return get(texture) != null;
+    }
+
+    public boolean has(@Nullable ComponentTexture texture) {
+        return texture != null && has(texture.textureName());
     }
 
     @Nullable

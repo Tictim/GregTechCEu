@@ -114,7 +114,7 @@ public class ComponentModel implements IModel {
         for (var parts : getParts()) {
             for (Component part : parts) {
                 for (ComponentFace face : part.getFaces()) {
-                    ResourceLocation texture = this.textureMappings.get(face.texture.texture());
+                    ResourceLocation texture = this.textureMappings.get(face.texture.textureName());
                     if (texture != null) {
                         textures.add(texture);
                     }
@@ -201,7 +201,7 @@ public class ComponentModel implements IModel {
         @CheckReturnValue
         private int add(@Nonnull ImmutableList<Component> components) {
             if (components.isEmpty()) {
-                throw new IllegalArgumentException("part.length == 0");
+                throw new IllegalArgumentException("components.length == 0");
             }
             for (Component component : components) {
                 Objects.requireNonNull(component, "one of the parts is null");
@@ -243,11 +243,25 @@ public class ComponentModel implements IModel {
             return Collections.unmodifiableList(this.list.get(id));
         }
 
+        @Nonnull
+        public Component getPart(int id, int index) {
+            return this.list.get(id).get(index);
+        }
+
         public void append(int id, @Nonnull Component... components) {
+            appendInternal(id, false, components);
+        }
+
+        public void appendInternal(int id, boolean overwrite, @Nonnull Component... components) {
             if (id < 0) throw new IndexOutOfBoundsException("id < 0");
             if (id >= this.list.size()) throw new IndexOutOfBoundsException("Invalid part ID " + id);
+            if (Objects.requireNonNull(components, "components == null").length == 0) {
+                throw new IllegalArgumentException("components.length == 0");
+            }
 
             List<Component> list = this.list.get(id);
+            if (overwrite) list.clear();
+
             for (Component component : components) {
                 list.add(Objects.requireNonNull(component, "one of the parts is null"));
             }

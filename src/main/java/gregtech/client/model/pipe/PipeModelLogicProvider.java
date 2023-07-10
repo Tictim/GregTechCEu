@@ -7,6 +7,7 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.util.EnumFacing;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -59,6 +60,22 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
         return new ModelTextureMapping(map);
     }
 
+    protected ComponentTexture sideTexture() {
+        return SIDE_TEXTURE;
+    }
+
+    protected ComponentTexture openEndTexture() {
+        return OPEN_TEXTURE;
+    }
+
+    protected ComponentTexture extrusionTexture() {
+        return EXTRUSION_TEXTURE;
+    }
+
+    protected ComponentTexture[] sideAtlasTextures(boolean jointed) {
+        return jointed ? JOINTED_ATLAS_TEXTURES : ATLAS_TEXTURES;
+    }
+
     @Nonnull
     protected int[] registerBaseModels(ComponentModel.Register componentRegister,
                                        ModelTextureMapping textureMapping) {
@@ -100,13 +117,13 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                 facing == UP ? 16 : modelEnd,
                 facing == SOUTH ? 16 : modelEnd);
         if (closed) {
-            if (textureMapping.has(TEXTURE_ATLAS)) {
-                setAtlasTexture(c, 0, JOINTED_ATLAS_TEXTURES, facing);
+            if (textureMapping.has(sideAtlasTextures(false)[0])) {
+                setAtlasTexture(c, 0, sideAtlasTextures(true), facing);
             } else {
-                c.addFace(SIDE_TEXTURE, facing);
+                c.addFace(sideTexture(), facing);
             }
         } else {
-            c.addFace(OPEN_TEXTURE, facing);
+            c.addFace(openEndTexture(), facing);
         }
         consumer.accept(c);
     }
@@ -122,17 +139,16 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                 facing == EAST ? 16 + PIPE_EXTRUSION_SIZE : facing == WEST ? 0 : modelEnd,
                 facing == UP ? 16 + PIPE_EXTRUSION_SIZE : facing == DOWN ? 0 : modelEnd,
                 facing == SOUTH ? 16 + PIPE_EXTRUSION_SIZE : facing == NORTH ? 0 : modelEnd);
-        c.addFaces(EXTRUSION_TEXTURE, f -> f.getAxis() != facing.getAxis(), facing);
+        c.addFaces(extrusionTexture(), f -> f.getAxis() != facing.getAxis(), facing);
         if (closed) {
-            if (textureMapping.has(TEXTURE_ATLAS)) {
-                setAtlasTexture(c, 0, JOINTED_ATLAS_TEXTURES, facing);
+            if (textureMapping.has(sideAtlasTextures(false)[0])) {
+                setAtlasTexture(c, 0, sideAtlasTextures(true), facing);
             } else {
-                c.addFace(SIDE_TEXTURE, facing, facing);
+                c.addFace(sideTexture(), facing, facing);
             }
         } else {
-            c.addFace(OPEN_TEXTURE, facing, facing);
+            c.addFace(openEndTexture(), facing, facing);
         }
-        c.addFace(EXTRUSION_TEXTURE, facing);
         consumer.accept(c);
     }
 
@@ -140,7 +156,7 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
         return componentRegister.add(new Component(
                 modelStart, modelStart, modelStart,
                 modelEnd, modelEnd, modelEnd)
-                .addAllFaces(OPEN_TEXTURE, true));
+                .addAllFaces(openEndTexture(), true));
     }
 
     protected int singleBranchModel(ComponentModel.Register componentRegister, ModelTextureMapping textureMapping, EnumFacing connectedSide) {
@@ -151,12 +167,12 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                 connectedSide == EAST ? 16 : modelEnd,
                 connectedSide == UP ? 16 : modelEnd,
                 connectedSide == SOUTH ? 16 : modelEnd);
-        if (textureMapping.has(TEXTURE_ATLAS)) {
-            setAtlasTexture(c, PipeModelLogic.getBlockConnection(connectedSide), ATLAS_TEXTURES, f -> f.getAxis() != connectedSide.getAxis());
+        if (textureMapping.has(sideAtlasTextures(false)[0])) {
+            setAtlasTexture(c, PipeModelLogic.getBlockConnection(connectedSide), sideAtlasTextures(false), f -> f.getAxis() != connectedSide.getAxis());
         } else {
-            c.addFaces(SIDE_TEXTURE, f -> f.getAxis() != connectedSide.getAxis());
+            c.addFaces(sideTexture(), f -> f.getAxis() != connectedSide.getAxis());
         }
-        c.addFace(OPEN_TEXTURE, connectedSide.getOpposite());
+        c.addFace(openEndTexture(), connectedSide.getOpposite());
         return componentRegister.add(c);
     }
 
@@ -168,13 +184,13 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                 axis == Axis.X ? 16 : modelEnd,
                 axis == Axis.Y ? 16 : modelEnd,
                 axis == Axis.Z ? 16 : modelEnd);
-        if (textureMapping.has(TEXTURE_ATLAS)) {
+        if (textureMapping.has(sideAtlasTextures(false)[0])) {
             setAtlasTexture(c, PipeModelLogic.getBlockConnection(
                     EnumFacing.getFacingFromAxis(AxisDirection.NEGATIVE, axis),
                     EnumFacing.getFacingFromAxis(AxisDirection.POSITIVE, axis)
-            ), ATLAS_TEXTURES, f -> f.getAxis() != axis);
+            ), sideAtlasTextures(false), f -> f.getAxis() != axis);
         } else {
-            c.addFaces(SIDE_TEXTURE, f -> f.getAxis() != axis);
+            c.addFaces(sideTexture(), f -> f.getAxis() != axis);
         }
         return componentRegister.add(c);
     }
@@ -193,13 +209,13 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                         side == UP ? 16 : side == DOWN ? modelStart : modelEnd,
                         side == SOUTH ? 16 : side == NORTH ? modelStart : modelEnd);
 
-                if (textureMapping.has(TEXTURE_ATLAS)) {
+                if (textureMapping.has(sideAtlasTextures(false)[0])) {
                     setAtlasTexture(c,
                             blockConnections,
-                            jointed ? JOINTED_ATLAS_TEXTURES : ATLAS_TEXTURES,
+                            sideAtlasTextures(jointed),
                             f -> f.getAxis() != side.getAxis());
                 } else {
-                    c.addFaces(SIDE_TEXTURE, f -> f.getAxis() != side.getAxis());
+                    c.addFaces(sideTexture(), f -> f.getAxis() != side.getAxis());
                 }
 
                 list.add(c);
@@ -211,13 +227,13 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                     list.add(center);
                 }
 
-                if (textureMapping.has(TEXTURE_ATLAS)) {
+                if (textureMapping.has(sideAtlasTextures(false)[0])) {
                     setAtlasTexture(center,
                             blockConnections,
-                            jointed ? JOINTED_ATLAS_TEXTURES : ATLAS_TEXTURES,
+                            sideAtlasTextures(jointed),
                             side);
                 } else {
-                    center.addFace(SIDE_TEXTURE, side);
+                    center.addFace(sideTexture(), side);
                 }
             }
         }
@@ -227,6 +243,11 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
 
     @Nonnull
     public static ComponentTexture[] generateAtlasTextures(String texture, int tintIndex) {
+        return generateAtlasTextures(null, texture, tintIndex);
+    }
+
+    @Nonnull
+    public static ComponentTexture[] generateAtlasTextures(@Nullable ComponentTexture[] baseAtlas, String texture, int tintIndex) {
         ComponentTexture[] textures = new ComponentTexture[16];
         for (byte i = 0; i < textures.length; i++) {
             int x, y;
@@ -240,7 +261,7 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
             } else {
                 y = PipeModelLogic.connectedToDown(i) ? 1 : 0;
             }
-            textures[i] = new ComponentTexture(texture, tintIndex)
+            textures[i] = new ComponentTexture(baseAtlas == null ? null : baseAtlas[i], texture, tintIndex)
                     .setUVTransformation(m -> {
                         MatrixUtils.scale(m, .25f, .25f);
                         MatrixUtils.translate(m, 4 * x, 4 * y);

@@ -1,5 +1,6 @@
 package gregtech.client.model.component;
 
+import com.google.common.collect.Iterators;
 import gregtech.client.utils.MatrixUtils;
 import net.minecraft.util.EnumFacing;
 import org.lwjgl.util.vector.Matrix3f;
@@ -7,11 +8,15 @@ import org.lwjgl.util.vector.Vector2f;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Iterator;
+import java.util.Objects;
 import java.util.function.Consumer;
 
-public final class ComponentTexture {
+public final class ComponentTexture implements Iterable<ComponentTexture> {
 
-    private final String texture;
+    private final ComponentTexture baseTexture;
+
+    private final String textureName;
     private final int tintIndex;
 
     @Nullable
@@ -19,14 +24,23 @@ public final class ComponentTexture {
 
     private boolean bloom;
 
-    public ComponentTexture(String texture, int tintIndex) {
-        this.texture = texture;
+    public ComponentTexture(@Nonnull String textureName, int tintIndex) {
+        this(null, textureName, tintIndex);
+    }
+
+    public ComponentTexture(@Nullable ComponentTexture baseTexture, @Nonnull String textureName, int tintIndex) {
+        this.baseTexture = baseTexture;
+        this.textureName = Objects.requireNonNull(textureName, "textureName == null");
         this.tintIndex = tintIndex;
     }
 
+    public ComponentTexture baseTexture() {
+        return baseTexture;
+    }
+
     @Nonnull
-    public String texture() {
-        return texture;
+    public String textureName() {
+        return textureName;
     }
 
     public int tintIndex() {
@@ -106,10 +120,28 @@ public final class ComponentTexture {
         return this;
     }
 
+    @Nonnull
+    @Override
+    public Iterator<ComponentTexture> iterator() {
+        if (this.baseTexture == null) return Iterators.singletonIterator(this);
+
+        int count = 1;
+        for (ComponentTexture t = baseTexture; t != null; t = t.baseTexture) {
+            count++;
+        }
+
+        ComponentTexture[] arr = new ComponentTexture[count];
+        for (ComponentTexture t = this; t != null; t = t.baseTexture) {
+            arr[--count] = t;
+        }
+        return Iterators.forArray(arr);
+    }
+
     @Override
     public String toString() {
         return "ComponentTexture{" +
-                "texture='" + texture + '\'' +
+                "baseTexture=" + baseTexture +
+                ", textureName='" + textureName + '\'' +
                 ", tintIndex=" + tintIndex +
                 ", uvTransformation=" + uvTransformation +
                 ", bloom=" + bloom +

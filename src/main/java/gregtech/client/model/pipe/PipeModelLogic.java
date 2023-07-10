@@ -47,6 +47,8 @@ public abstract class PipeModelLogic<PipeType extends Enum<PipeType> & IPipeType
         this.openExtrusion = openExtrusion;
     }
 
+    protected abstract boolean isCorrectPipeType(@Nonnull IPipeType<?> pipeType);
+
     @Override
     public void computeStates(@Nonnull ModelStates states, @Nullable WorldContext ctx) {
         if (ctx != null) {
@@ -58,6 +60,12 @@ public abstract class PipeModelLogic<PipeType extends Enum<PipeType> & IPipeType
             }
         }
         collectItemModels(states);
+    }
+
+    protected void collectItemModels(@Nonnull ModelStates collector) {
+        collector.includePart(this.base[ITEM_MODEL_CONNECTION]);
+        collector.includePart(this.openEnd.getPart(EnumFacing.NORTH));
+        collector.includePart(this.openEnd.getPart(EnumFacing.SOUTH));
     }
 
     protected void collectPipeModels(@Nonnull ModelStates collector,
@@ -102,12 +110,6 @@ public abstract class PipeModelLogic<PipeType extends Enum<PipeType> & IPipeType
                 }
             }
         }
-    }
-
-    protected void collectItemModels(@Nonnull ModelStates collector) {
-        collector.includePart(this.base[ITEM_MODEL_CONNECTION]);
-        collector.includePart(this.openEnd.getPart(EnumFacing.NORTH));
-        collector.includePart(this.openEnd.getPart(EnumFacing.SOUTH));
     }
 
     protected void collectFrameModel(@Nonnull ModelStates collector,
@@ -165,8 +167,6 @@ public abstract class PipeModelLogic<PipeType extends Enum<PipeType> & IPipeType
         return state.getBlock() instanceof BlockPipe<?, ?, ?> block ?
                 block.getPipeTileEntity(ctx.world, ctx.pos) : null;
     }
-
-    protected abstract boolean isCorrectPipeType(@Nonnull IPipeType<?> pipeType);
 
     /**
      * @param down  If the block is connected in {@link EnumFacing#DOWN} direction
