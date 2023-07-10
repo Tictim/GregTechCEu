@@ -5,7 +5,6 @@ import gregtech.client.utils.MatrixUtils;
 import net.minecraft.util.EnumFacing;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
-import org.lwjgl.util.vector.Vector4f;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -82,18 +81,18 @@ public final class ComponentShape {
     @Nonnull
     public Vector3f getVertexAt(@Nonnull CubeVertex vertex) {
         Vector3f pos = new Vector3f(
-                vertex.getFacingX() == EnumFacing.WEST ? fromX : toX,
-                vertex.getFacingX() == EnumFacing.DOWN ? fromY : toY,
-                vertex.getFacingX() == EnumFacing.NORTH ? fromZ : toZ
+                (vertex.getFacingX() == EnumFacing.WEST ? fromX : toX) * (1 / 16f),
+                (vertex.getFacingY() == EnumFacing.DOWN ? fromY : toY) * (1 / 16f),
+                (vertex.getFacingZ() == EnumFacing.NORTH ? fromZ : toZ) * (1 / 16f)
         );
         if (this.transformation != null) {
-            pos.x -= 8;
-            pos.y -= 8;
-            pos.z -= 8;
+            pos.x -= .5f;
+            pos.y -= .5f;
+            pos.z -= .5f;
             MatrixUtils.transform(this.transformation, pos, pos);
-            pos.x += 8;
-            pos.y += 8;
-            pos.z += 8;
+            pos.x += .5f;
+            pos.y += .5f;
+            pos.z += .5f;
         }
         return pos;
     }
@@ -106,12 +105,7 @@ public final class ComponentShape {
                 facing.getZOffset()
         );
         if (this.transformation != null) {
-            Vector4f vec4 = new Vector4f(pos.x, pos.y, pos.z, 1f);
-            Matrix4f.transform(this.transformation, vec4, vec4);
-            if (Math.abs(vec4.w - 1f) > 1e-5) {
-                vec4.scale(1f / vec4.w);
-            }
-            pos.set(vec4.x, vec4.y, vec4.z);
+            MatrixUtils.transform(this.transformation, pos, pos);
         }
 
         if (normalize && pos.lengthSquared() != 0) {

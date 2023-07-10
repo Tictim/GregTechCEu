@@ -83,7 +83,7 @@ public final class ModelTextureMapping {
                 if (resolved == null) continue;
 
                 if (!resolved.startsWith("#")) {
-                    ResourceLocation resourceLocation = new ResourceLocation(texture);
+                    ResourceLocation resourceLocation = new ResourceLocation(resolved);
                     if (matchHistory != null) {
                         for (String t : matchHistory) {
                             this.cache.put(t, resourceLocation);

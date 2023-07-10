@@ -1,14 +1,25 @@
 package gregtech.client.model.pipe;
 
+import gregtech.api.cover.CoverBehavior;
+import gregtech.api.cover.ICoverable;
 import gregtech.api.pipenet.block.BlockPipe;
 import gregtech.api.pipenet.block.IPipeType;
 import gregtech.api.pipenet.tile.IPipeTile;
+import gregtech.api.pipenet.tile.PipeCoverableImplementation;
+import gregtech.api.unification.material.Material;
 import gregtech.client.model.component.EnumIndexedPart;
 import gregtech.client.model.component.IComponentLogic;
 import gregtech.client.model.component.ModelStates;
 import gregtech.client.model.component.WorldContext;
+import gregtech.client.utils.RenderUtil;
+import gregtech.common.blocks.BlockFrame;
+import gregtech.common.blocks.MetaBlocks;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.block.model.BakedQuad;
+import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.MathHelper;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -60,28 +71,36 @@ public abstract class PipeModelLogic<PipeType extends Enum<PipeType> & IPipeType
                 pipeTile.isConnected(EnumFacing.WEST),
                 pipeTile.isConnected(EnumFacing.EAST))]);
 
+        PipeCoverableImplementation coverable = pipeTile.getCoverableImplementation();
+
+        if (pipeTile.getFrameMaterial() != null) {
+            collectFrameModel(collector, ctx, pipeTile, pipeTile.getFrameMaterial());
+        }
+
         for (EnumFacing side : EnumFacing.VALUES) {
             if (!pipeTile.isConnected(side)) continue;
+
+            CoverBehavior cover = coverable.getCoverAtSide(side);
+            if (cover != null) {
+                continue;
+            }
 
             if (ctx.world.getTileEntity(ctx.origin().move(side)) instanceof IPipeTile<?, ?> pipe2 &&
                     pipe2.isConnected(side.getOpposite())) {
                 if (pipe2.getPipeType().getThickness() < pipeTile.getPipeType().getThickness()) {
-                    collector.includePart(this.closedEnd.getPart(side));
-                }
+                    if (pipeTile.getFrameMaterial() != null) {
+                        collector.includePart(this.closedExtrusion.getPart(side));
+                    } else {
+                        collector.includePart(this.closedEnd.getPart(side));
+                    }
+                } // no need to draw extra things otherwise
             } else {
-                collector.includePart(this.openEnd.getPart(side));
+                if (pipeTile.getFrameMaterial() != null) {
+                    collector.includePart(this.openExtrusion.getPart(side));
+                } else {
+                    collector.includePart(this.openEnd.getPart(side));
+                }
             }
-
-            if (pipeTile.getFrameMaterial() != null) {
-                // TODO
-            }
-
-            // if (frameMaterial != null && !coverAtSide && BlockFrame.shouldFrameSideBeRendered(frameMaterial, world, pos, facing)) {
-            //     connections |= 1 << (facing.getIndex() + 18);
-            //     if (tipVisible) {
-            //         connections |= 1 << (facing.getIndex() + 24);
-            //     }
-            // }
         }
     }
 
@@ -89,6 +108,55 @@ public abstract class PipeModelLogic<PipeType extends Enum<PipeType> & IPipeType
         collector.includePart(this.base[ITEM_MODEL_CONNECTION]);
         collector.includePart(this.openEnd.getPart(EnumFacing.NORTH));
         collector.includePart(this.openEnd.getPart(EnumFacing.SOUTH));
+    }
+
+    protected void collectFrameModel(@Nonnull ModelStates collector,
+                                     @Nonnull WorldContext ctx,
+                                     @Nonnull IPipeTile<PipeType, NodeDataType> pipeTile,
+                                     @Nonnull Material frameMaterial) {
+        BlockFrame block = MetaBlocks.FRAMES.get(frameMaterial);
+        if (block == null) {
+            return;
+        }
+
+        IBlockState state = block.getBlock(frameMaterial);
+        IBakedModel model = Minecraft.getMinecraft().getBlockRendererDispatcher().getModelForState(state);
+
+        try {
+            state = state.getActualState(ctx.world, ctx.pos);
+            state = state.getBlock().getExtendedState(state, ctx.world, ctx.pos);
+        } catch (Throwable ignored) {}
+
+        long posRand = MathHelper.getPositionRandom(ctx.pos);
+
+        PipeCoverableImplementation coverable = pipeTile.getCoverableImplementation();
+
+        // area of the actual frame, excluding parts covered by covers
+        float x1 = getCoverThicknessAt(coverable, EnumFacing.WEST);
+        float y1 = getCoverThicknessAt(coverable, EnumFacing.DOWN);
+        float z1 = getCoverThicknessAt(coverable, EnumFacing.NORTH);
+        float x2 = 1 - getCoverThicknessAt(coverable, EnumFacing.EAST);
+        float y2 = 1 - getCoverThicknessAt(coverable, EnumFacing.UP);
+        float z2 = 1 - getCoverThicknessAt(coverable, EnumFacing.SOUTH);
+
+        for (BakedQuad quad : model.getQuads(state, null, posRand)) {
+            BakedQuad clamped = RenderUtil.clamp(quad, x1, y1, z1, x2, y2, z2);
+            if (clamped != null) collector.includeQuad(clamped, null);
+        }
+
+        for (EnumFacing side : EnumFacing.VALUES) {
+            if (coverable.getCoverAtSide(side) != null) continue; // blocked by cover plates
+            for (BakedQuad quad : model.getQuads(state, side, posRand)) {
+                BakedQuad clamped = RenderUtil.clamp(quad, x1, y1, z1, x2, y2, z2);
+                if (clamped != null) collector.includeQuad(clamped, side);
+            }
+        }
+    }
+
+    protected static float getCoverThicknessAt(@Nonnull ICoverable coverable, @Nonnull EnumFacing side) {
+        CoverBehavior cover = coverable.getCoverAtSide(side);
+        if (cover == null) return 0;
+        return Math.max((float) cover.getCoverPlateThickness(side, coverable.getCoverPlateThickness()), 0);
     }
 
     @Nullable

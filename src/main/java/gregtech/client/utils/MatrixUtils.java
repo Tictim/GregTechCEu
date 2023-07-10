@@ -50,7 +50,7 @@ public final class MatrixUtils {
     public static void transform(javax.vecmath.Matrix4f matrix, Vector3f vector, Vector3f dest) {
         javax.vecmath.Vector4f iHateJavaxVecmath = new javax.vecmath.Vector4f(vector.x, vector.y, vector.z, 1);
         matrix.transform(iHateJavaxVecmath);
-        float scale = 1f / iHateJavaxVecmath.z;
+        float scale = 1f / iHateJavaxVecmath.w;
         dest.set(iHateJavaxVecmath.x * scale, iHateJavaxVecmath.y * scale, iHateJavaxVecmath.z * scale);
     }
 

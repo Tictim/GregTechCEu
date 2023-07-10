@@ -1,7 +1,7 @@
 package gregtech.client.model.component;
 
 import gregtech.client.utils.BloomEffectUtil;
-import it.unimi.dsi.fastutil.ints.IntIterator;
+import gregtech.client.utils.RenderUtil;
 import it.unimi.dsi.fastutil.ints.IntLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import net.minecraft.block.state.IBlockState;
@@ -12,7 +12,6 @@ import net.minecraft.util.EnumFacing;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -69,16 +68,6 @@ public final class ModelStates {
         return quads;
     }
 
-    @Nonnull
-    public BitSet toCacheKeys() {
-        BitSet bits = new BitSet(this.components.size);
-        IntIterator it = this.includedParts.iterator();
-        while (it.hasNext()) {
-            bits.set(it.nextInt(), true);
-        }
-        return bits;
-    }
-
     @Override
     public String toString() {
         return "ModelStates{" +
@@ -128,11 +117,11 @@ public final class ModelStates {
 
         @Override
         public String toString() {
-            return "Quad{" +
-                    "quad=" + quad +
-                    ", cullFace=" + cullFace +
-                    ", specificLayer=" + specificLayer +
-                    '}';
+            StringBuilder b = new StringBuilder();
+            b.append(RenderUtil.prettyPrintBakedQuad(quad));
+            if (cullFace != null) b.append("\nCull Face: ").append(cullFace);
+            if (specificLayer != null) b.append("\nRender Layer: ").append(specificLayer);
+            return b.toString();
         }
     }
 }

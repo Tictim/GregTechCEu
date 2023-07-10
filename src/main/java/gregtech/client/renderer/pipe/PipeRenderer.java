@@ -138,14 +138,14 @@ public abstract class PipeRenderer implements ICCBlockRenderer, IItemRenderer, I
     @Override
     public void renderItem(ItemStack rawItemStack, TransformType transformType) {
         ItemStack stack = ModCompatibility.getRealItemStack(rawItemStack);
-        if (!(stack.getItem() instanceof ItemBlockPipe)) {
+        if (!(stack.getItem() instanceof ItemBlockPipe item)) {
             return;
         }
         CCRenderState renderState = CCRenderState.instance();
         GlStateManager.enableBlend();
         renderState.reset();
         renderState.startDrawing(GL11.GL_QUADS, DefaultVertexFormats.ITEM);
-        BlockPipe<?, ?, ?> blockFluidPipe = (BlockPipe<?, ?, ?>) ((ItemBlockPipe<?, ?>) stack.getItem()).getBlock();
+        BlockPipe<?, ?, ?> blockFluidPipe = (BlockPipe<?, ?, ?>) item.getBlock();
         IPipeType<?> pipeType = blockFluidPipe.getItemPipeType(stack);
         if (pipeType != null) {
             Material material = blockFluidPipe instanceof BlockMaterialPipe blockMaterialPipe ? blockMaterialPipe.getItemMaterial(stack) : null;

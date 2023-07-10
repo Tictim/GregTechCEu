@@ -1,6 +1,7 @@
 package gregtech.client.model.component;
 
 import com.google.common.collect.ImmutableList;
+import gregtech.api.util.GTLog;
 import gregtech.client.utils.BloomEffectUtil;
 import gregtech.client.utils.CubeVertex;
 import gregtech.client.utils.MatrixUtils;
@@ -16,7 +17,6 @@ import net.minecraft.client.renderer.vertex.VertexFormatElement;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3i;
 import net.minecraftforge.client.model.pipeline.UnpackedBakedQuad;
 import net.minecraftforge.common.model.IModelState;
@@ -28,10 +28,7 @@ import org.lwjgl.util.vector.Vector3f;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 
 import static gregtech.client.utils.CubeVertex.*;
@@ -94,6 +91,14 @@ public final class BakedComponent {
                 this.quads[partID] = builder.build();
             }
         }
+
+        GTLog.logger.info("{} quads baked", Arrays.stream(this.quads).mapToInt(l -> l.size()).sum());
+        for (int i = 0; i < quads.length; i++) {
+            GTLog.logger.info(":::: Part #{}: {} elements", i, quads[i].size());
+            for (int j = 0; j < quads[i].size(); j++) {
+                GTLog.logger.info("[[{}]]\n{}", j, quads[i].get(j));
+            }
+        }
     }
 
     private static void bake(ComponentModel model,
@@ -114,7 +119,7 @@ public final class BakedComponent {
 
             Vector2f[] uvs = face.texture.getUVs(component.getShape(), face.side);
 
-            Vector3f normalVector = null;
+            Vector3f normalVector;
             if (format.hasNormal()) {
                 normalVector = component.getShape().getFaceDirection(face.side, false);
                 MatrixUtils.transform(mat, normalVector, normalVector);
@@ -122,6 +127,8 @@ public final class BakedComponent {
                 if (normalVector.lengthSquared() != 0) {
                     normalVector.normalise();
                 }
+            } else {
+                normalVector = null;
             }
 
             VertexFormat fmt;
@@ -136,45 +143,47 @@ public final class BakedComponent {
 
             UnpackedBakedQuad.Builder quad = new UnpackedBakedQuad.Builder(fmt);
 
-            for (int i = 0; i < 4; i++) {
-                CubeVertex faceVertex = faceVertices[i];
-                Vector3f vert = verts[faceVertex.ordinal()];
-
-                if (vert == null) {
-                    verts[faceVertex.ordinal()] = vert = component.getShape().getVertexAt(faceVertex);
+            for (int vertexIndex = 0; vertexIndex < 4; vertexIndex++) {
+                CubeVertex faceVertex = faceVertices[vertexIndex];
+                if (verts[faceVertex.ordinal()] == null) {
+                    verts[faceVertex.ordinal()] = component.getShape().getVertexAt(faceVertex);
                 }
 
-                for (int v = 0; v < 4; v++) {
-                    for (int e = 0; e < fmt.getElementCount(); e++) {
-                        VertexFormatElement element = fmt.getElement(e);
-                        switch (element.getUsage()) {
-                            case POSITION -> quad.put(e, vert.x, vert.y, vert.z);
-                            case NORMAL -> {
-                                if (normalVector == null) {
-                                    throw new IllegalStateException();
-                                }
-                                quad.put(e, normalVector.x, normalVector.y, normalVector.z);
-                            }
-                            case COLOR -> {
-                                int shade = component.getShape().shade() && !face.texture.isBloom() ?
-                                        getFaceShade(face.side) : -1;
-                                quad.put(e, shade, shade, shade, 1); // rgba
-                            }
-                            case UV -> {
-                                if (element.getType() == VertexFormatElement.EnumType.FLOAT) { // UV
-                                    quad.put(e, sprite.getInterpolatedU(uvs[i].x), sprite.getInterpolatedV(uvs[i].y));
-                                } else { // lightmap coords
-                                    if (face.texture.isBloom()) {
-                                        quad.put(e, 480f / 0xFFFF, 480f / 0xFFFF);
-                                    } else {
-                                        quad.put(e);
-                                    }
-                                }
-                            }
-                            // MATRIX, BLEND_WEIGHT, GENERIC, PADDING
-                            // generic "empty data"
-                            default -> quad.put(e);
+                for (int e = 0; e < fmt.getElementCount(); e++) {
+                    VertexFormatElement element = fmt.getElement(e);
+                    switch (element.getUsage()) {
+                        case POSITION -> {
+                            Vector3f vert = verts[faceVertex.ordinal()];
+                            quad.put(e, vert.x, vert.y, vert.z);
                         }
+                        case NORMAL -> {
+                            Objects.requireNonNull(normalVector);
+                            quad.put(e, normalVector.x, normalVector.y, normalVector.z);
+                        }
+                        case COLOR -> {
+                            float shade = component.getShape().shade() && !face.texture.isBloom() ?
+                                    switch (face.side) {
+                                        case DOWN -> 0.5f;
+                                        case UP -> 1.0f;
+                                        case NORTH, SOUTH -> 0.8f;
+                                        case WEST, EAST -> 0.6f;
+                                    } : 1;
+                            quad.put(e, shade, shade, shade, 1); // rgba
+                        }
+                        case UV -> {
+                            if (element.getType() == VertexFormatElement.EnumType.FLOAT) { // UV
+                                quad.put(e, sprite.getInterpolatedU(uvs[vertexIndex].x), sprite.getInterpolatedV(uvs[vertexIndex].y));
+                            } else { // lightmap coords
+                                if (face.texture.isBloom()) {
+                                    quad.put(e, 480f / 0xFFFF, 480f / 0xFFFF);
+                                } else {
+                                    quad.put(e);
+                                }
+                            }
+                        }
+                        // MATRIX, BLEND_WEIGHT, GENERIC, PADDING
+                        // generic "empty data"
+                        default -> quad.put(e);
                     }
                 }
             }
@@ -189,16 +198,6 @@ public final class BakedComponent {
                     face.cullFace,
                     face.texture.isBloom() ? BloomEffectUtil.BLOOM : null));
         }
-    }
-
-    private static int getFaceShade(EnumFacing facing) {
-        int shade = (int) (switch (facing) {
-            case DOWN -> 0.5f;
-            case UP -> 1.0f;
-            case NORTH, SOUTH -> 0.8f;
-            case WEST, EAST -> 0.6f;
-        } * 255f);
-        return MathHelper.clamp(shade, 0, 255);
     }
 
     /**
