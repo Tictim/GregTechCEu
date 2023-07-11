@@ -36,12 +36,11 @@ public class FluidPipeModelLogic extends PipeModelLogic<FluidPipeType, FluidPipe
     @Override
     protected void collectPipeModels(@Nonnull ModelStates collector, @Nonnull WorldContext ctx, @Nonnull IPipeTile<FluidPipeType, FluidPipeProperties> pipeTile) {
         super.collectPipeModels(collector, ctx, pipeTile);
-        for (EnumFacing facing : EnumFacing.VALUES) {
-            if (pipeTile.isConnected(facing) && pipeTile.isFaceBlocked(facing)) {
-                collector.includePart(this.restrictedSide.getPart(facing));
-                if (pipeTile.getFrameMaterial() != null &&
-                        pipeTile.getCoverableImplementation().getCoverAtSide(facing) == null) {
-                    collector.includePart(this.restrictedExtrusion.getPart(facing));
+        for (EnumFacing side : EnumFacing.VALUES) {
+            if (pipeTile.isConnected(side) && pipeTile.isFaceBlocked(side)) {
+                collector.includePart(this.restrictedSide.getPart(side));
+                if (isSideExtruded(ctx, pipeTile, side)) {
+                    collector.includePart(this.restrictedExtrusion.getPart(side));
                 }
             }
         }

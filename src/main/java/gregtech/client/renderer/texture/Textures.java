@@ -289,15 +289,6 @@ public class Textures {
     public static final ResourceLocation GREEN_CAPE_TEXTURE = gregtechId("textures/capes/greencape.png");
 
     @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite LASER_PIPE_IN;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite LASER_PIPE_SIDE;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite LASER_PIPE_OVERLAY;
-    @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite LASER_PIPE_OVERLAY_EMISSIVE;
-
-    @SideOnly(Side.CLIENT)
     public static ThreadLocal<CubeRendererState> RENDER_STATE;
 
     static {
@@ -316,11 +307,6 @@ public class Textures {
         for (IIconRegister iconRegister : iconRegisters) {
             iconRegister.registerIcons(textureMap);
         }
-
-        LASER_PIPE_SIDE = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_laser_side"));
-        LASER_PIPE_IN = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_laser_in"));
-        LASER_PIPE_OVERLAY = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_laser_side_overlay"));
-        LASER_PIPE_OVERLAY_EMISSIVE = textureMap.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_laser_side_overlay_emissive"));
 
         for (MaterialIconSet iconSet : MaterialIconSet.ICON_SETS.values()) {
             textureMap.registerSprite(MaterialIconType.frameGt.getBlockTexturePath(iconSet));

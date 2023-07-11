@@ -5,12 +5,12 @@ import com.google.gson.JsonParseException;
 import gregtech.api.GTValues;
 import gregtech.client.model.component.ComponentModel;
 import gregtech.client.model.frame.FrameModelLogicProvider;
-import gregtech.client.model.pipe.CableModelLogicProvider;
-import gregtech.client.model.pipe.FluidPipeModelLogicProvider;
-import gregtech.client.model.pipe.ItemPipeModelLogicProvider;
+import gregtech.client.model.pipe.*;
 import gregtech.common.pipelike.cable.Insulation;
 import gregtech.common.pipelike.fluidpipe.FluidPipeType;
 import gregtech.common.pipelike.itempipe.ItemPipeType;
+import gregtech.common.pipelike.laser.LaserPipeType;
+import gregtech.common.pipelike.optical.OpticalPipeType;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.client.renderer.block.model.IBakedModel;
@@ -78,6 +78,11 @@ public enum GregTechBuiltInModelLoader implements ICustomModelLoader {
             addPrebuiltModel("cable/" + insulation.name,
                     new ComponentModel(new CableModelLogicProvider(insulation.getThickness(), insulation.isCable())));
         }
+
+        addPrebuiltModel("optical_pipe",
+                new ComponentModel(new OpticalPipeModelLogicProvider(OpticalPipeType.NORMAL.getThickness())));
+        addPrebuiltModel("laser_pipe",
+                new ComponentModel(new LaserPipeModelLogicProvider(LaserPipeType.NORMAL.getThickness())));
     }
 
     @Override

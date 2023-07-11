@@ -6,14 +6,13 @@ import gregtech.client.utils.MatrixUtils;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.util.EnumFacing;
 
+import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.IntFunction;
 import java.util.function.Predicate;
 
 import static net.minecraft.util.EnumFacing.*;
@@ -30,16 +29,17 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
 
     protected static final String TEXTURE_ATLAS = "#atlas";
     protected static final String TEXTURE_ATLAS_JOINTED = "#atlas_jointed";
+    protected static final String TEXTURE_SIDE = "#side";
     protected static final String TEXTURE_OPEN = "#open";
     protected static final String TEXTURE_EXTRUSION = "#extrusion";
-    protected static final String TEXTURE_SIDE = "#side";
 
-    protected static final ComponentTexture[] ATLAS_TEXTURES = generateAtlasTextures(TEXTURE_ATLAS, TINT_PIPE);
-    protected static final ComponentTexture[] JOINTED_ATLAS_TEXTURES = generateAtlasTextures(TEXTURE_ATLAS_JOINTED, TINT_PIPE);
-
-    protected static final ComponentTexture SIDE_TEXTURE = new ComponentTexture(TEXTURE_SIDE, TINT_PIPE);
-    protected static final ComponentTexture OPEN_TEXTURE = new ComponentTexture(TEXTURE_OPEN, TINT_PIPE);
-    protected static final ComponentTexture EXTRUSION_TEXTURE = new ComponentTexture(TEXTURE_OPEN, TINT_PIPE);
+    public static final PipeModelTexture DEFAULT_TEXTURES = new PipeModelTexture(
+            new PipeSideAtlasTexture(TEXTURE_ATLAS, TINT_PIPE),
+            new PipeSideAtlasTexture(TEXTURE_ATLAS_JOINTED, TINT_PIPE),
+            new ComponentTexture(TEXTURE_SIDE, TINT_PIPE),
+            new ComponentTexture(TEXTURE_OPEN, TINT_PIPE),
+            new ComponentTexture(TEXTURE_EXTRUSION, TINT_PIPE)
+    );
 
     protected final float thickness;
     protected final float modelStart;
@@ -60,44 +60,57 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
         return new ModelTextureMapping(map);
     }
 
-    protected ComponentTexture sideTexture() {
-        return SIDE_TEXTURE;
-    }
-
-    protected ComponentTexture openEndTexture() {
-        return OPEN_TEXTURE;
-    }
-
-    protected ComponentTexture extrusionTexture() {
-        return EXTRUSION_TEXTURE;
-    }
-
-    protected ComponentTexture[] sideAtlasTextures(boolean jointed) {
-        return jointed ? JOINTED_ATLAS_TEXTURES : ATLAS_TEXTURES;
+    protected PipeModelTexture getModelTextures() {
+        return DEFAULT_TEXTURES;
     }
 
     @Nonnull
+    @CheckReturnValue
+    protected int[] defaultBaseModels(ComponentModel.Register componentRegister,
+                                      ModelTextureMapping textureMapping) {
+        return registerBaseModels(componentRegister, textureMapping, getModelTextures());
+    }
+
+    @Nonnull
+    @CheckReturnValue
+    protected EnumIndexedPart<EnumFacing> defaultEndModels(ComponentModel.Register componentRegister,
+                                                           ModelTextureMapping textureMapping,
+                                                           boolean closed) {
+        return componentRegister.addForEachFacing((f, b) -> registerEndModels(f, b, textureMapping, getModelTextures(), closed));
+    }
+
+    @Nonnull
+    @CheckReturnValue
+    protected EnumIndexedPart<EnumFacing> defaultExtrusionModels(ComponentModel.Register componentRegister,
+                                                                 ModelTextureMapping textureMapping,
+                                                                 boolean closed) {
+        return componentRegister.addForEachFacing((f, b) -> registerExtrusionModels(f, b, textureMapping, getModelTextures(), closed));
+    }
+
+    @Nonnull
+    @CheckReturnValue
     protected int[] registerBaseModels(ComponentModel.Register componentRegister,
-                                       ModelTextureMapping textureMapping) {
+                                       ModelTextureMapping textureMapping,
+                                       PipeModelTexture textures) {
         int[] models = new int[1 << 6];
         for (int connection = 0; connection < models.length; connection++) {
             if (connection == 0) { // open end on all 6 sides
-                models[connection] = connectionlessModel(componentRegister, textureMapping);
+                models[connection] = connectionlessModel(componentRegister, textureMapping, textures);
             } else {
                 EnumSet<EnumFacing> sides = PipeModelLogic.getConnectedSides(connection);
                 if (sides.size() == 1) {
-                    models[connection] = singleBranchModel(componentRegister, textureMapping, sides.iterator().next());
+                    models[connection] = singleBranchModel(componentRegister, textureMapping, textures, sides.iterator().next());
                 } else if (sides.size() == 2) {
                     Iterator<EnumFacing> it = sides.iterator();
                     EnumFacing f1 = it.next();
                     EnumFacing f2 = it.next();
                     if (f1.getAxis() == f2.getAxis()) {
-                        models[connection] = straightModel(componentRegister, textureMapping, f1.getAxis());
+                        models[connection] = straightModel(componentRegister, textureMapping, textures, f1.getAxis());
                     } else {
-                        models[connection] = complexModel(componentRegister, textureMapping, connection, false);
+                        models[connection] = complexModel(componentRegister, textureMapping, textures, connection, false);
                     }
                 } else {
-                    models[connection] = complexModel(componentRegister, textureMapping, connection, true);
+                    models[connection] = complexModel(componentRegister, textureMapping, textures, connection, true);
                 }
             }
         }
@@ -108,6 +121,7 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
     protected void registerEndModels(EnumFacing facing,
                                      Consumer<Component> consumer,
                                      ModelTextureMapping textureMapping,
+                                     PipeModelTexture textures,
                                      boolean closed) {
         Component c = new Component(
                 facing == WEST ? 0 : modelStart,
@@ -117,13 +131,16 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                 facing == UP ? 16 : modelEnd,
                 facing == SOUTH ? 16 : modelEnd);
         if (closed) {
-            if (textureMapping.has(sideAtlasTextures(false)[0])) {
-                setAtlasTexture(c, 0, sideAtlasTextures(true), facing);
-            } else {
-                c.addFace(sideTexture(), facing);
+            PipeSideAtlasTexture sideAtlas = textures.sideAtlas(true);
+            if (sideAtlas != null && textureMapping.has(sideAtlas.textureName)) {
+                sideAtlas.setAtlasTexture(c, 0, facing);
+            } else if (textures.side != null) {
+                c.addFace(textures.side, facing);
             }
         } else {
-            c.addFace(openEndTexture(), facing);
+            if (textures.open != null) {
+                c.addFace(textures.open, facing);
+            }
         }
         consumer.accept(c);
     }
@@ -131,6 +148,7 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
     protected void registerExtrusionModels(EnumFacing facing,
                                            Consumer<Component> consumer,
                                            ModelTextureMapping textureMapping,
+                                           PipeModelTexture textures,
                                            boolean closed) {
         Component c = new Component(
                 facing == WEST ? 0 - PIPE_EXTRUSION_SIZE : facing == EAST ? 16 : modelStart,
@@ -139,27 +157,38 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                 facing == EAST ? 16 + PIPE_EXTRUSION_SIZE : facing == WEST ? 0 : modelEnd,
                 facing == UP ? 16 + PIPE_EXTRUSION_SIZE : facing == DOWN ? 0 : modelEnd,
                 facing == SOUTH ? 16 + PIPE_EXTRUSION_SIZE : facing == NORTH ? 0 : modelEnd);
-        c.addFaces(extrusionTexture(), f -> f.getAxis() != facing.getAxis(), facing);
+        if (textures.extrusion != null) {
+            c.addFaces(textures.extrusion, f -> f.getAxis() != facing.getAxis(), facing);
+        }
         if (closed) {
-            if (textureMapping.has(sideAtlasTextures(false)[0])) {
-                setAtlasTexture(c, 0, sideAtlasTextures(true), facing);
-            } else {
-                c.addFace(sideTexture(), facing, facing);
+            PipeSideAtlasTexture sideAtlas = textures.sideAtlas(true);
+            if (sideAtlas != null && textureMapping.has(sideAtlas.textureName)) {
+                sideAtlas.setAtlasTexture(c, 0, facing);
+            } else if (textures.side != null) {
+                c.addFace(textures.side, facing, facing);
             }
-        } else {
-            c.addFace(openEndTexture(), facing, facing);
+        } else if (textures.open != null) {
+            c.addFace(textures.open, facing, facing);
         }
         consumer.accept(c);
     }
 
-    protected int connectionlessModel(ComponentModel.Register componentRegister, ModelTextureMapping textureMapping) {
-        return componentRegister.add(new Component(
+    protected int connectionlessModel(ComponentModel.Register componentRegister,
+                                      ModelTextureMapping textureMapping,
+                                      PipeModelTexture textures) {
+        Component c = new Component(
                 modelStart, modelStart, modelStart,
-                modelEnd, modelEnd, modelEnd)
-                .addAllFaces(openEndTexture(), true));
+                modelEnd, modelEnd, modelEnd);
+        if (textures.open != null) {
+            c.addAllFaces(textures.open, true);
+        }
+        return componentRegister.add(c);
     }
 
-    protected int singleBranchModel(ComponentModel.Register componentRegister, ModelTextureMapping textureMapping, EnumFacing connectedSide) {
+    protected int singleBranchModel(ComponentModel.Register componentRegister,
+                                    ModelTextureMapping textureMapping,
+                                    PipeModelTexture textures,
+                                    EnumFacing connectedSide) {
         Component c = new Component(
                 connectedSide == WEST ? 0 : modelStart,
                 connectedSide == DOWN ? 0 : modelStart,
@@ -167,16 +196,24 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                 connectedSide == EAST ? 16 : modelEnd,
                 connectedSide == UP ? 16 : modelEnd,
                 connectedSide == SOUTH ? 16 : modelEnd);
-        if (textureMapping.has(sideAtlasTextures(false)[0])) {
-            setAtlasTexture(c, PipeModelLogic.getBlockConnection(connectedSide), sideAtlasTextures(false), f -> f.getAxis() != connectedSide.getAxis());
-        } else {
-            c.addFaces(sideTexture(), f -> f.getAxis() != connectedSide.getAxis());
+        PipeSideAtlasTexture sideAtlas = textures.sideAtlas(false);
+        if (sideAtlas != null && textureMapping.has(sideAtlas.textureName)) {
+            sideAtlas.setAtlasTexture(c,
+                    PipeModelLogic.getBlockConnection(connectedSide),
+                    f -> f.getAxis() != connectedSide.getAxis());
+        } else if (textures.side != null) {
+            c.addFaces(textures.side, f -> f.getAxis() != connectedSide.getAxis());
         }
-        c.addFace(openEndTexture(), connectedSide.getOpposite());
+        if (textures.open != null) {
+            c.addFace(textures.open, connectedSide.getOpposite());
+        }
         return componentRegister.add(c);
     }
 
-    protected int straightModel(ComponentModel.Register componentRegister, ModelTextureMapping textureMapping, EnumFacing.Axis axis) {
+    protected int straightModel(ComponentModel.Register componentRegister,
+                                ModelTextureMapping textureMapping,
+                                PipeModelTexture textures,
+                                Axis axis) {
         Component c = new Component(
                 axis == Axis.X ? 0 : modelStart,
                 axis == Axis.Y ? 0 : modelStart,
@@ -184,18 +221,23 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                 axis == Axis.X ? 16 : modelEnd,
                 axis == Axis.Y ? 16 : modelEnd,
                 axis == Axis.Z ? 16 : modelEnd);
-        if (textureMapping.has(sideAtlasTextures(false)[0])) {
-            setAtlasTexture(c, PipeModelLogic.getBlockConnection(
+        PipeSideAtlasTexture sideAtlas = textures.sideAtlas(false);
+        if (sideAtlas != null && textureMapping.has(sideAtlas.textureName)) {
+            sideAtlas.setAtlasTexture(c, PipeModelLogic.getBlockConnection(
                     EnumFacing.getFacingFromAxis(AxisDirection.NEGATIVE, axis),
                     EnumFacing.getFacingFromAxis(AxisDirection.POSITIVE, axis)
-            ), sideAtlasTextures(false), f -> f.getAxis() != axis);
-        } else {
-            c.addFaces(sideTexture(), f -> f.getAxis() != axis);
+            ), f -> f.getAxis() != axis);
+        } else if (textures.side != null) {
+            c.addFaces(textures.side, f -> f.getAxis() != axis);
         }
         return componentRegister.add(c);
     }
 
-    protected int complexModel(ComponentModel.Register componentRegister, ModelTextureMapping textureMapping, int blockConnections, boolean jointed) {
+    protected int complexModel(ComponentModel.Register componentRegister,
+                               ModelTextureMapping textureMapping,
+                               PipeModelTexture textures,
+                               int blockConnections,
+                               boolean jointed) {
         List<Component> list = new ArrayList<>();
         Component center = null;
 
@@ -209,13 +251,11 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                         side == UP ? 16 : side == DOWN ? modelStart : modelEnd,
                         side == SOUTH ? 16 : side == NORTH ? modelStart : modelEnd);
 
-                if (textureMapping.has(sideAtlasTextures(false)[0])) {
-                    setAtlasTexture(c,
-                            blockConnections,
-                            sideAtlasTextures(jointed),
-                            f -> f.getAxis() != side.getAxis());
-                } else {
-                    c.addFaces(sideTexture(), f -> f.getAxis() != side.getAxis());
+                PipeSideAtlasTexture sideAtlas = textures.sideAtlas(jointed);
+                if (sideAtlas != null && textureMapping.has(sideAtlas.textureName)) {
+                    sideAtlas.setAtlasTexture(c, blockConnections, f -> f.getAxis() != side.getAxis());
+                } else if (textures.side != null) {
+                    c.addFaces(textures.side, f -> f.getAxis() != side.getAxis());
                 }
 
                 list.add(c);
@@ -227,13 +267,11 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                     list.add(center);
                 }
 
-                if (textureMapping.has(sideAtlasTextures(false)[0])) {
-                    setAtlasTexture(center,
-                            blockConnections,
-                            sideAtlasTextures(jointed),
-                            side);
-                } else {
-                    center.addFace(sideTexture(), side);
+                PipeSideAtlasTexture sideAtlas = textures.sideAtlas(false);
+                if (sideAtlas != null && textureMapping.has(sideAtlas.textureName)) {
+                    sideAtlas.setAtlasTexture(center, blockConnections, side);
+                } else if (textures.side != null) {
+                    center.addFace(textures.side, side);
                 }
             }
         }
@@ -241,58 +279,168 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
         return componentRegister.add(list);
     }
 
-    @Nonnull
-    public static ComponentTexture[] generateAtlasTextures(String texture, int tintIndex) {
-        return generateAtlasTextures(null, texture, tintIndex);
+    public static final class PipeModelTexture {
+
+        @Nullable
+        public final PipeSideAtlasTexture atlas;
+        @Nullable
+        public final PipeSideAtlasTexture jointedAtlas;
+
+        @Nullable
+        public final ComponentTexture side;
+        @Nullable
+        public final ComponentTexture open;
+        @Nullable
+        public final ComponentTexture extrusion;
+
+        public PipeModelTexture(@Nullable PipeSideAtlasTexture atlas,
+                                @Nullable PipeSideAtlasTexture jointedAtlas,
+                                @Nullable ComponentTexture side,
+                                @Nullable ComponentTexture open,
+                                @Nullable ComponentTexture extrusion) {
+            this.atlas = atlas;
+            this.jointedAtlas = jointedAtlas;
+            this.side = side;
+            this.open = open;
+            this.extrusion = extrusion;
+        }
+
+        @Nonnull
+        public PipeSideAtlasTexture expectAtlas() {
+            return Objects.requireNonNull(atlas, "atlas == null");
+        }
+
+        @Nonnull
+        public PipeSideAtlasTexture expectJointedAtlas() {
+            return Objects.requireNonNull(jointedAtlas, "jointedAtlas == null");
+        }
+
+        @Nonnull
+        public ComponentTexture expectSide() {
+            return Objects.requireNonNull(side, "side == null");
+        }
+
+        @Nonnull
+        public ComponentTexture expectOpen() {
+            return Objects.requireNonNull(open, "open == null");
+        }
+
+        @Nonnull
+        public ComponentTexture expectExtrusion() {
+            return Objects.requireNonNull(extrusion, "extrusion == null");
+        }
+
+        @Nullable
+        public PipeSideAtlasTexture sideAtlas(boolean jointed) {
+            return jointed ?
+                    this.jointedAtlas != null ? this.jointedAtlas : this.atlas :
+                    this.atlas != null ? this.atlas : this.jointedAtlas;
+        }
+
+        @Override
+        public String toString() {
+            return "PipeModelTexture{" +
+                    "atlas=" + atlas +
+                    ", jointedAtlas=" + jointedAtlas +
+                    ", side=" + side +
+                    ", open=" + open +
+                    ", extrusion=" + extrusion +
+                    '}';
+        }
     }
 
-    @Nonnull
-    public static ComponentTexture[] generateAtlasTextures(@Nullable ComponentTexture[] baseAtlas, String texture, int tintIndex) {
-        ComponentTexture[] textures = new ComponentTexture[16];
-        for (byte i = 0; i < textures.length; i++) {
-            int x, y;
-            if (PipeModelLogic.connectedToLeft(i)) {
-                x = PipeModelLogic.connectedToRight(i) ? 2 : 3;
-            } else {
-                x = PipeModelLogic.connectedToRight(i) ? 1 : 0;
+    public static final class PipeSideAtlasTexture {
+
+        private final ComponentTexture[] textures = new ComponentTexture[16];
+        private final String textureName;
+
+        public PipeSideAtlasTexture(String textureName, int tintIndex) {
+            this(false, null, textureName, tintIndex);
+        }
+
+        public PipeSideAtlasTexture(@Nullable ComponentTexture baseTexture, String textureName, int tintIndex) {
+            this(false, baseTexture == null ? null : i -> baseTexture, textureName, tintIndex);
+        }
+
+        public PipeSideAtlasTexture(@Nullable PipeSideAtlasTexture baseAtlas, String textureName, int tintIndex) {
+            this(false, baseAtlas == null ? null : i -> baseAtlas.get(i), textureName, tintIndex);
+        }
+
+        public PipeSideAtlasTexture(String textureName, IntFunction<ComponentTexture> atlasTextureFactory) {
+            this.textureName = Objects.requireNonNull(textureName, "textureName == null");
+            for (byte i = 0; i < this.textures.length; i++) {
+                this.textures[i] = Objects.requireNonNull(atlasTextureFactory.apply(i),
+                        "side atlas texture for connection " + Integer.toUnsignedString(i, 2) + " is null!");
             }
-            if (PipeModelLogic.connectedToUp(i)) {
-                y = PipeModelLogic.connectedToDown(i) ? 2 : 3;
-            } else {
-                y = PipeModelLogic.connectedToDown(i) ? 1 : 0;
+        }
+
+        private PipeSideAtlasTexture(@SuppressWarnings("unused") boolean internal,
+                                     @Nullable IntFunction<ComponentTexture> baseTextureGetter,
+                                     String textureName,
+                                     int tintIndex) {
+            this.textureName = Objects.requireNonNull(textureName, "textureName == null");
+            for (byte i = 0; i < this.textures.length; i++) {
+                int x, y;
+                if (PipeModelLogic.connectedToLeft(i)) {
+                    x = PipeModelLogic.connectedToRight(i) ? 2 : 3;
+                } else {
+                    x = PipeModelLogic.connectedToRight(i) ? 1 : 0;
+                }
+                if (PipeModelLogic.connectedToUp(i)) {
+                    y = PipeModelLogic.connectedToDown(i) ? 2 : 3;
+                } else {
+                    y = PipeModelLogic.connectedToDown(i) ? 1 : 0;
+                }
+                this.textures[i] = new ComponentTexture(
+                        baseTextureGetter == null ? null : baseTextureGetter.apply(i),
+                        textureName, tintIndex)
+                        .setUVTransformation(m -> {
+                            MatrixUtils.scale(m, .25f, .25f);
+                            MatrixUtils.translate(m, 4 * x, 4 * y);
+                        });
             }
-            textures[i] = new ComponentTexture(baseAtlas == null ? null : baseAtlas[i], texture, tintIndex)
-                    .setUVTransformation(m -> {
-                        MatrixUtils.scale(m, .25f, .25f);
-                        MatrixUtils.translate(m, 4 * x, 4 * y);
-                    });
         }
-        return textures;
-    }
 
-    public static void setAtlasTexture(Component component,
-                                       int blockConnectionFlag,
-                                       ComponentTexture[] atlasTextures,
-                                       Predicate<EnumFacing> facingFilter) {
-        for (EnumFacing side : EnumFacing.VALUES) {
-            if (!facingFilter.test(side)) continue;
-            setAtlasTexture(component, blockConnectionFlag, atlasTextures, side);
+        @Nonnull
+        public String getTextureName() {
+            return textureName;
         }
-    }
 
-    public static void setAtlasTexture(Component component,
-                                       int blockConnectionFlag,
-                                       ComponentTexture[] atlasTextures,
-                                       EnumFacing... sides) {
-        for (EnumFacing side : sides) {
-            setAtlasTexture(component, blockConnectionFlag, atlasTextures, side);
+        @Nonnull
+        public ComponentTexture get(int sideConnection) {
+            return this.textures[sideConnection];
         }
-    }
 
-    public static void setAtlasTexture(Component component,
-                                       int blockConnectionFlag,
-                                       ComponentTexture[] atlasTextures,
-                                       EnumFacing side) {
-        component.addFace(atlasTextures[PipeModelLogic.getSideConnection(blockConnectionFlag, side)], side);
+        public void setAtlasTexture(Component component,
+                                    int blockConnectionFlag,
+                                    Predicate<EnumFacing> facingFilter) {
+            for (EnumFacing side : EnumFacing.VALUES) {
+                if (!facingFilter.test(side)) continue;
+                setAtlasTexture(component, blockConnectionFlag, side);
+            }
+        }
+
+        public void setAtlasTexture(Component component,
+                                    int blockConnectionFlag,
+                                    EnumFacing... sides) {
+            for (EnumFacing side : sides) {
+                setAtlasTexture(component, blockConnectionFlag, side);
+            }
+        }
+
+        public void setAtlasTexture(Component component,
+                                    int blockConnectionFlag,
+                                    EnumFacing side) {
+            ComponentTexture texture = get(PipeModelLogic.getSideConnection(blockConnectionFlag, side));
+            component.addFace(texture, side);
+        }
+
+        @Override
+        public String toString() {
+            return "PipeSideAtlasTexture{" +
+                    "textures=" + Arrays.toString(textures) +
+                    ", textureName='" + textureName + '\'' +
+                    '}';
+        }
     }
 }

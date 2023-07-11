@@ -168,6 +168,17 @@ public abstract class PipeModelLogic<PipeType extends Enum<PipeType> & IPipeType
                 block.getPipeTileEntity(ctx.world, ctx.pos) : null;
     }
 
+    public static boolean isSideExtruded(@Nonnull WorldContext ctx,
+                                         @Nonnull IPipeTile<?, ?> pipeTile,
+                                         @Nonnull EnumFacing side) {
+        return pipeTile.getFrameMaterial() != null &&
+                pipeTile.isConnected(side) &&
+                pipeTile.getCoverableImplementation().getCoverAtSide(side) == null &&
+                !(ctx.world.getTileEntity(ctx.origin().move(side)) instanceof IPipeTile<?, ?> pipe2 &&
+                        pipe2.isConnected(side.getOpposite()) &&
+                        pipe2.getPipeType().getThickness() >= pipeTile.getPipeType().getThickness());
+    }
+
     /**
      * @param down  If the block is connected in {@link EnumFacing#DOWN} direction
      * @param up    If the block is connected in {@link EnumFacing#UP} direction

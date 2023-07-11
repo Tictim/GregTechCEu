@@ -29,10 +29,6 @@ public final class OpticalPipeRenderer extends PipeRenderer {
     }
 
     @Override
-    public void registerIcons(TextureMap map) {
-    }
-
-    @Override
     protected void registerPipeTextures(TextureMap map) {
         opticalPipeIn = map.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_optical_in"));
         opticalPipeSide = map.registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_optical_side"));
