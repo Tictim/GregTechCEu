@@ -1,6 +1,6 @@
 package gregtech.common.blocks.special;
 
-import gregtech.client.model.component.ISpecialBakedModel;
+import gregtech.client.model.ISpecialBakedModel;
 import gregtech.client.utils.ModelStateCache;
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.IBlockState;

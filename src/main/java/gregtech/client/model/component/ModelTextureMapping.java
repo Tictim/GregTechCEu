@@ -17,7 +17,22 @@ import java.util.stream.Stream;
 
 public final class ModelTextureMapping {
 
-    public static final ModelTextureMapping EMPTY = new ModelTextureMapping();
+    private static final ModelTextureMapping empty = new ModelTextureMapping();
+
+    @Nonnull
+    public static ModelTextureMapping empty() {
+        return empty;
+    }
+
+    @Nonnull
+    public static Builder builder() {
+        return builder(null);
+    }
+
+    @Nonnull
+    public static Builder builder(@Nullable ModelTextureMapping parent) {
+        return new Builder(parent);
+    }
 
     private final List<Map<String, String>> textures;
 
@@ -51,6 +66,7 @@ public final class ModelTextureMapping {
         this.cache = new Object2ObjectOpenHashMap<>();
     }
 
+    @Nonnull
     public ModelTextureMapping fallback(@Nonnull Map<String, String> textures) {
         if (this.textures.isEmpty()) return new ModelTextureMapping(textures);
         List<Map<String, String>> newTextures = new ArrayList<>(this.textures);
@@ -139,5 +155,31 @@ public final class ModelTextureMapping {
     public TextureAtlasSprite getTextureOrDefault(@Nullable String texture, @Nonnull ResourceLocation fallbackTextureLocation,
                                                   @Nonnull Function<ResourceLocation, TextureAtlasSprite> bakedTextureGetter) {
         return bakedTextureGetter.apply(getOrDefault(texture, fallbackTextureLocation));
+    }
+
+    public static final class Builder {
+
+        private final ModelTextureMapping parent;
+        private final Map<String, String> textures = new Object2ObjectOpenHashMap<>();
+
+        public Builder(@Nullable ModelTextureMapping parent) {
+            this.parent = parent;
+        }
+
+        @Nonnull
+        public Builder add(@Nonnull String key, @Nullable String texture) {
+            if (Objects.requireNonNull(key, "key == null").startsWith("#")) {
+                key = key.substring(1);
+            }
+            this.textures.put(key, texture);
+            return this;
+        }
+
+        @Nonnull
+        public ModelTextureMapping build() {
+            return this.textures.isEmpty() ?
+                    this.parent != null ? this.parent : empty() :
+                    new ModelTextureMapping(this.textures, this.parent);
+        }
     }
 }

@@ -10,9 +10,9 @@ import static net.minecraft.util.EnumFacing.*;
 
 public class FluidPipeModelLogicProvider extends PipeModelLogicProvider {
 
-    protected static final String TEXTURE_RESTRICTED_OVERLAY = "#restricted_overlay";
+    public static final String TEXTURE_BLOCKED_OVERLAY = "#blocked_overlay";
 
-    protected static final ComponentTexture RESTRICTED_OVERLAY = new ComponentTexture(TEXTURE_RESTRICTED_OVERLAY, TINT_OVERLAY);
+    public static final ComponentTexture BLOCKED_OVERLAY = new ComponentTexture(TEXTURE_BLOCKED_OVERLAY, TINT_OVERLAY);
 
     public FluidPipeModelLogicProvider(float thickness) {
         super(thickness);
@@ -24,10 +24,10 @@ public class FluidPipeModelLogicProvider extends PipeModelLogicProvider {
                                       @Nonnull ModelTextureMapping textureMapping) {
         return new FluidPipeModelLogic(
                 defaultBaseModels(componentRegister, textureMapping),
-                defaultEndModels(componentRegister,textureMapping, false),
-                defaultEndModels(componentRegister,textureMapping, true),
-                defaultExtrusionModels(componentRegister,textureMapping, false),
-                defaultExtrusionModels(componentRegister,textureMapping, true),
+                defaultEndModels(componentRegister, textureMapping, true),
+                defaultEndModels(componentRegister, textureMapping, false),
+                defaultExtrusionModels(componentRegister, textureMapping, true),
+                defaultExtrusionModels(componentRegister, textureMapping, false),
                 componentRegister.addForEachFacing((f, b) -> registerRestrictedSideModels(f, b, textureMapping)),
                 componentRegister.addForEachFacing((f, b) -> registerRestrictedExtrusionModels(f, b, textureMapping)));
     }
@@ -42,7 +42,7 @@ public class FluidPipeModelLogicProvider extends PipeModelLogicProvider {
                 facing == EAST ? 16 : facing == WEST ? 8 : modelEnd,
                 facing == UP ? 16 : facing == DOWN ? 8 : modelEnd,
                 facing == SOUTH ? 16 : facing == NORTH ? 8 : modelEnd)
-                .addFaces(RESTRICTED_OVERLAY, f -> f.getAxis() != facing.getAxis()));
+                .addFaces(BLOCKED_OVERLAY, f -> f.getAxis() != facing.getAxis()));
     }
 
     protected void registerRestrictedExtrusionModels(@Nonnull EnumFacing facing,
@@ -55,6 +55,6 @@ public class FluidPipeModelLogicProvider extends PipeModelLogicProvider {
                 facing == EAST ? 16 + PIPE_EXTRUSION_SIZE : facing == WEST ? 0 : modelEnd,
                 facing == UP ? 16 + PIPE_EXTRUSION_SIZE : facing == DOWN ? 0 : modelEnd,
                 facing == SOUTH ? 16 + PIPE_EXTRUSION_SIZE : facing == NORTH ? 0 : modelEnd)
-                .addFaces(RESTRICTED_OVERLAY, f -> f.getAxis() != facing.getAxis(), facing));
+                .addFaces(BLOCKED_OVERLAY, f -> f.getAxis() != facing.getAxis(), facing));
     }
 }

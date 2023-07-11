@@ -12,7 +12,6 @@ import gregtech.api.recipes.ModHandler;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.info.MaterialIconType;
 import gregtech.api.util.GTLog;
-import gregtech.client.model.MaterialStateMapper;
 import gregtech.client.model.modelfactories.MaterialBlockModelLoader;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.properties.PropertyMaterial;
@@ -24,6 +23,7 @@ import net.minecraft.block.SoundType;
 import net.minecraft.block.material.EnumPushReaction;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving.SpawnPlacementType;
@@ -107,7 +107,7 @@ public abstract class BlockFrame extends BlockMaterialBase {
     }
 
     @Override
-    public String getHarvestTool(IBlockState state) {
+    public String getHarvestTool(@Nonnull IBlockState state) {
         Material material = getGtMaterial(state);
         if (ModHandler.isMaterialWood(material)) {
             return ToolClasses.AXE;
@@ -117,7 +117,7 @@ public abstract class BlockFrame extends BlockMaterialBase {
 
     @Nonnull
     @Override
-    public SoundType getSoundType(IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nullable Entity entity) {
+    public SoundType getSoundType(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nullable Entity entity) {
         Material material = getGtMaterial(state);
         if (ModHandler.isMaterialWood(material)) {
             return SoundType.WOOD;
@@ -141,7 +141,7 @@ public abstract class BlockFrame extends BlockMaterialBase {
     @Override
     @Nonnull
     @SuppressWarnings("deprecation")
-    public net.minecraft.block.material.Material getMaterial(IBlockState state) {
+    public net.minecraft.block.material.Material getMaterial(@Nonnull IBlockState state) {
         Material material = getGtMaterial(state);
         if (ModHandler.isMaterialWood(material)) {
             return net.minecraft.block.material.Material.WOOD;
@@ -269,7 +269,7 @@ public abstract class BlockFrame extends BlockMaterialBase {
 
     @Override
     @SuppressWarnings("deprecation")
-    public boolean causesSuffocation(IBlockState state) {
+    public boolean causesSuffocation(@Nonnull IBlockState state) {
         return false;
     }
 
@@ -294,7 +294,7 @@ public abstract class BlockFrame extends BlockMaterialBase {
 
     @Override
     @SuppressWarnings("deprecation")
-    public boolean isFullCube(IBlockState state) {
+    public boolean isFullCube(@Nonnull IBlockState state) {
         return false;
     }
 
@@ -313,7 +313,7 @@ public abstract class BlockFrame extends BlockMaterialBase {
 
     @Override
     @SuppressWarnings("deprecation")
-    public boolean shouldSideBeRendered(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) {
+    public boolean shouldSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
         return shouldFrameSideBeRendered(getGtMaterial(state), world, pos, side);
     }
 
@@ -349,7 +349,7 @@ public abstract class BlockFrame extends BlockMaterialBase {
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World world, List<String> tooltip, ITooltipFlag flag) {
+    public void addInformation(@Nonnull ItemStack stack, @Nullable World world, @Nonnull List<String> tooltip, @Nonnull ITooltipFlag flag) {
         if (ConfigHolder.misc.debug) {
             tooltip.add("MetaItem Id: frame" + getGtMaterial(stack).toCamelCaseString());
         }
@@ -357,21 +357,16 @@ public abstract class BlockFrame extends BlockMaterialBase {
 
     @SideOnly(Side.CLIENT)
     public void onModelRegister() {
-        Map<Material, MaterialBlockModelLoader.Entry> map = new Object2ObjectOpenHashMap<>();
+        Map<IBlockState, ModelResourceLocation> map = new Object2ObjectOpenHashMap<>();
         for (IBlockState state : this.getBlockState().getValidStates()) {
             Material material = getGtMaterial(state);
-            MaterialBlockModelLoader.Entry entry = new MaterialBlockModelLoader.EntryBuilder(
-                    MaterialIconType.frameGt,
-                    material.getMaterialIconSet())
-                    .setStateProperties("")
-                    .register();
-            map.put(material, entry);
+            map.put(state, MaterialBlockModelLoader.loadBlockModel(MaterialIconType.frameGt, material.getMaterialIconSet()));
 
             ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(this),
                     this.getMetaFromState(state),
-                    entry.getItemModelId());
+                    MaterialBlockModelLoader.loadItemModel(MaterialIconType.frameGt, material.getMaterialIconSet()));
         }
-        ModelLoader.setCustomStateMapper(this, new MaterialStateMapper(map, this::getGtMaterial));
+        ModelLoader.setCustomStateMapper(this, b -> map);
     }
 
     @Nullable

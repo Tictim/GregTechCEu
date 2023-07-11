@@ -1,0 +1,53 @@
+{
+    "forge_marker": 1,
+    "defaults": {
+        "textures": {
+            "wire": "gregtech:blocks/cable/wire",
+            "insulation_side": "gregtech:blocks/cable/insulation_5"
+        }
+    },
+    "variants": {
+        "type": {
+            "wire_single": { "model": "gregtech:builtin/cable/wire_single" },
+            "wire_double": { "model": "gregtech:builtin/cable/wire_double" },
+            "wire_quadruple": { "model": "gregtech:builtin/cable/wire_quadruple" },
+            "wire_octal": { "model": "gregtech:builtin/cable/wire_octal" },
+            "wire_hex": { "model": "gregtech:builtin/cable/wire_hex" },
+            "cable_single": {
+                "model": "gregtech:builtin/cable/cable_single",
+                "textures": {
+                    "in_overlay": "gregtech:blocks/cable/insulation_0",
+                    "particle": "#insulation_side"
+                }
+            },
+            "cable_double": {
+                "model": "gregtech:builtin/cable/cable_double",
+                "textures": {
+                    "in_overlay": "gregtech:blocks/cable/insulation_1",
+                    "particle": "#insulation_side"
+                }
+            },
+            "cable_quadruple": {
+                "model": "gregtech:builtin/cable/cable_quadruple",
+                "textures": {
+                    "in_overlay": "gregtech:blocks/cable/insulation_2",
+                    "particle": "#insulation_side"
+                }
+            },
+            "cable_octal": {
+                "model": "gregtech:builtin/cable/cable_octal",
+                "textures": {
+                    "in_overlay": "gregtech:blocks/cable/insulation_3",
+                    "particle": "#insulation_side"
+                }
+            },
+            "cable_hex": {
+                "model": "gregtech:builtin/cable/cable_hex",
+                "textures": {
+                    "in_overlay": "gregtech:blocks/cable/insulation_4",
+                    "particle": "#insulation_side"
+                }
+            }
+        }
+    }
+}

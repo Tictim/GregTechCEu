@@ -1,0 +1,14 @@
+{
+    "forge_marker": 1,
+    "variants": {
+        "normal": {
+            "model": "gregtech:builtin/optical_pipe",
+            "textures": {
+                "side": "gregtech:blocks/pipe/pipe_optical_side",
+                "side_overlay": "gregtech:blocks/pipe/pipe_optical_side_overlay",
+                "side_overlay_active": "gregtech:blocks/pipe/pipe_optical_side_overlay_active",
+                "in": "gregtech:blocks/pipe/pipe_optical_in"
+            }
+        }
+    }
+}

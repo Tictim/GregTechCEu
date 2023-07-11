@@ -11,18 +11,16 @@ import gregtech.api.pipenet.block.material.BlockMaterialPipe;
 import gregtech.api.pipenet.tile.IPipeTile;
 import gregtech.api.pipenet.tile.TileEntityPipeBase;
 import gregtech.api.unification.material.Material;
+import gregtech.api.unification.material.info.MaterialIconType;
 import gregtech.api.unification.material.properties.WireProperties;
 import gregtech.api.unification.material.registry.MaterialRegistry;
 import gregtech.api.util.GTUtility;
-import gregtech.client.renderer.pipe.CableRenderer;
-import gregtech.client.renderer.pipe.PipeRenderer;
 import gregtech.common.pipelike.cable.net.WorldENet;
 import gregtech.common.pipelike.cable.tile.TileEntityCable;
 import gregtech.common.pipelike.cable.tile.TileEntityCableTickable;
 import gregtech.core.advancement.AdvancementTriggers;
 import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -30,20 +28,16 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 public class BlockCable extends BlockMaterialPipe<Insulation, WireProperties, WorldENet> implements ITileEntityProvider {
@@ -65,8 +59,16 @@ public class BlockCable extends BlockMaterialPipe<Insulation, WireProperties, Wo
         }
     }
 
-    public Collection<Material> getEnabledMaterials() {
+    @Nonnull
+    @Override
+    public Set<Material> getEnabledMaterials() {
         return Collections.unmodifiableSet(enabledMaterials.keySet());
+    }
+
+    @Nonnull
+    @Override
+    protected MaterialIconType getIconType() {
+        return MaterialIconType.cable;
     }
 
     @Override
@@ -77,12 +79,6 @@ public class BlockCable extends BlockMaterialPipe<Insulation, WireProperties, Wo
     @Override
     protected WireProperties createProperties(Insulation insulation, Material material) {
         return insulation.modifyProperties(enabledMaterials.getOrDefault(material, getFallbackType()));
-    }
-
-    @Nonnull
-    @Override
-    public PipeRenderer getPipeRenderer() {
-        return CableRenderer.INSTANCE;
     }
 
     @Override
@@ -179,22 +175,8 @@ public class BlockCable extends BlockMaterialPipe<Insulation, WireProperties, Wo
         }
     }
 
-    @Nonnull
-    @Override
-    @SideOnly(Side.CLIENT)
-    @SuppressWarnings("deprecation")
-    public EnumBlockRenderType getRenderType(@Nonnull IBlockState state) {
-        return CableRenderer.INSTANCE.getBlockRenderType();
-    }
-
     @Override
     public TileEntityPipeBase<Insulation, WireProperties> createNewTileEntity(boolean supportsTicking) {
         return supportsTicking ? new TileEntityCableTickable() : new TileEntityCable();
-    }
-
-    @Override
-    @SideOnly(Side.CLIENT)
-    protected Pair<TextureAtlasSprite, Integer> getParticleTexture(World world, BlockPos blockPos) {
-        return CableRenderer.INSTANCE.getParticleTexture((TileEntityCable) world.getTileEntity(blockPos));
     }
 }

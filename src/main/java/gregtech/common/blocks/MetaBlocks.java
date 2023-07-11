@@ -1,12 +1,11 @@
 package gregtech.common.blocks;
 
 import com.google.common.collect.ImmutableMap;
+import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
 import gregtech.api.block.machines.BlockMachine;
 import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.pipenet.longdist.BlockLongDistancePipe;
-import gregtech.common.pipelike.fluidpipe.longdistance.LDFluidPipeType;
-import gregtech.common.pipelike.itempipe.longdistance.LDItemPipeType;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
@@ -19,9 +18,9 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.function.TriConsumer;
 import gregtech.client.model.SimpleStateMapper;
 import gregtech.client.model.modelfactories.BakedModelHandler;
+import gregtech.client.model.pipe.*;
 import gregtech.client.renderer.handler.MetaTileEntityRenderer;
 import gregtech.client.renderer.handler.MetaTileEntityTESR;
-import gregtech.client.renderer.pipe.*;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.foam.BlockFoam;
 import gregtech.common.blocks.foam.BlockPetrifiedFoam;
@@ -33,10 +32,12 @@ import gregtech.common.pipelike.cable.tile.TileEntityCable;
 import gregtech.common.pipelike.cable.tile.TileEntityCableTickable;
 import gregtech.common.pipelike.fluidpipe.BlockFluidPipe;
 import gregtech.common.pipelike.fluidpipe.FluidPipeType;
+import gregtech.common.pipelike.fluidpipe.longdistance.LDFluidPipeType;
 import gregtech.common.pipelike.fluidpipe.tile.TileEntityFluidPipe;
 import gregtech.common.pipelike.fluidpipe.tile.TileEntityFluidPipeTickable;
 import gregtech.common.pipelike.itempipe.BlockItemPipe;
 import gregtech.common.pipelike.itempipe.ItemPipeType;
+import gregtech.common.pipelike.itempipe.longdistance.LDItemPipeType;
 import gregtech.common.pipelike.itempipe.tile.TileEntityItemPipe;
 import gregtech.common.pipelike.itempipe.tile.TileEntityItemPipeTickable;
 import gregtech.common.pipelike.laser.BlockLaserPipe;
@@ -64,7 +65,6 @@ import net.minecraft.item.EnumDyeColor;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.client.model.ModelLoader;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.registry.GameRegistry;
@@ -385,15 +385,17 @@ public class MetaBlocks {
     @SideOnly(Side.CLIENT)
     public static void registerItemModels() {
         ModelLoader.setCustomMeshDefinition(Item.getItemFromBlock(MACHINE), stack -> MetaTileEntityRenderer.MODEL_LOCATION);
-        for (MaterialRegistry registry : GregTechAPI.materialManager.getRegistries()) {
-            for (BlockCable cable : CABLES.get(registry.getModid())) cable.onModelRegister();
-            for (BlockFluidPipe pipe : FLUID_PIPES.get(registry.getModid())) pipe.onModelRegister();
-            for (BlockItemPipe pipe : ITEM_PIPES.get(registry.getModid())) pipe.onModelRegister();
+
+        for (BlockOpticalPipe pipe : OPTICAL_PIPES) {
+            Item item = Item.getItemFromBlock(pipe);
+            ModelLoader.setCustomMeshDefinition(item, stack -> new ModelResourceLocation(GTValues.MODID + ":optical_pipe"));
+            ModelLoader.registerItemVariants(item);
         }
-        for (BlockOpticalPipe pipe : OPTICAL_PIPES)
-            ModelLoader.setCustomMeshDefinition(Item.getItemFromBlock(pipe), stack -> OpticalPipeRenderer.INSTANCE.getModelLocation());
-        for (BlockLaserPipe pipe : LASER_PIPES)
-            ModelLoader.setCustomMeshDefinition(Item.getItemFromBlock(pipe), stack -> LaserPipeRenderer.INSTANCE.getModelLocation());
+        for (BlockLaserPipe pipe : LASER_PIPES) {
+            Item item = Item.getItemFromBlock(pipe);
+            ModelLoader.setCustomMeshDefinition(item, stack -> new ModelResourceLocation(GTValues.MODID + ":laser_pipe"));
+            ModelLoader.registerItemVariants(item);
+        }
 
         registerItemModel(BOILER_CASING);
         registerItemModel(METAL_CASING);
@@ -475,25 +477,23 @@ public class MetaBlocks {
         ModelLoader.setCustomStateMapper(MACHINE, new SimpleStateMapper(MetaTileEntityRenderer.MODEL_LOCATION));
 
         IStateMapper normalStateMapper;
+
         for (MaterialRegistry registry : GregTechAPI.materialManager.getRegistries()) {
-            normalStateMapper = new SimpleStateMapper(CableRenderer.INSTANCE.getModelLocation());
             for (BlockCable cable : CABLES.get(registry.getModid())) {
-                ModelLoader.setCustomStateMapper(cable, normalStateMapper);
+                cable.onModelRegister();
             }
-            normalStateMapper = new SimpleStateMapper(FluidPipeRenderer.INSTANCE.getModelLocation());
             for (BlockFluidPipe pipe : FLUID_PIPES.get(registry.getModid())) {
-                ModelLoader.setCustomStateMapper(pipe, normalStateMapper);
+                pipe.onModelRegister();
             }
-            normalStateMapper = new SimpleStateMapper(ItemPipeRenderer.INSTANCE.getModelLocation());
             for (BlockItemPipe pipe : ITEM_PIPES.get(registry.getModid())) {
-                ModelLoader.setCustomStateMapper(pipe, normalStateMapper);
+                pipe.onModelRegister();
             }
         }
-        normalStateMapper = new SimpleStateMapper(OpticalPipeRenderer.INSTANCE.getModelLocation());
+        normalStateMapper = new SimpleStateMapper(new ModelResourceLocation(GTValues.MODID + ":optical_pipe"));
         for (BlockOpticalPipe pipe : OPTICAL_PIPES) {
             ModelLoader.setCustomStateMapper(pipe, normalStateMapper);
         }
-        normalStateMapper = new SimpleStateMapper(LaserPipeRenderer.INSTANCE.getModelLocation());
+        normalStateMapper = new SimpleStateMapper(new ModelResourceLocation(GTValues.MODID + ":laser_pipe"));
         for (BlockLaserPipe pipe : LASER_PIPES) {
             ModelLoader.setCustomStateMapper(pipe, normalStateMapper);
         }
@@ -516,9 +516,7 @@ public class MetaBlocks {
         ModelLoader.setCustomStateMapper(PETRIFIED_FOAM, normalStateMapper);
         ModelLoader.setCustomStateMapper(REINFORCED_PETRIFIED_FOAM, normalStateMapper);
 
-        BakedModelHandler modelHandler = new BakedModelHandler();
-        MinecraftForge.EVENT_BUS.register(modelHandler);
-        FLUID_BLOCKS.forEach(modelHandler::addFluidBlock);
+        FLUID_BLOCKS.forEach(BakedModelHandler::addFluidBlock);
 
         ClientRegistry.bindTileEntitySpecialRenderer(MetaTileEntityHolder.class, new MetaTileEntityTESR());
     }
@@ -576,6 +574,32 @@ public class MetaBlocks {
                 ConfigHolder.client.defaultPaintingColor, HERMETIC_CASING);
         itemColors.registerItemColorHandler((s, i) ->
                 ConfigHolder.client.defaultPaintingColor, HERMETIC_CASING);
+
+        for (BlockCable[] cables : CABLES.values()) {
+            for (BlockCable cable : cables) {
+                new CableColor(cable).register(blockColors, itemColors);
+            }
+        }
+
+        for (BlockFluidPipe[] fluidPipes : FLUID_PIPES.values()) {
+            for (BlockFluidPipe fluidPipe : fluidPipes) {
+                new FluidPipeColor(fluidPipe).register(blockColors, itemColors);
+            }
+        }
+
+        for (BlockItemPipe[] itemPipes : ITEM_PIPES.values()) {
+            for (BlockItemPipe itemPipe : itemPipes) {
+                new ItemPipeColor(itemPipe).register(blockColors, itemColors);
+            }
+        }
+
+        for (BlockOpticalPipe opticalPipe : OPTICAL_PIPES) {
+            new OpticalPipeColor(opticalPipe).register(blockColors, itemColors);
+        }
+
+        for (BlockLaserPipe laserPipe : LASER_PIPES) {
+            new LaserPipeColor(laserPipe).register(blockColors, itemColors);
+        }
     }
 
     public static void registerOreDict() {

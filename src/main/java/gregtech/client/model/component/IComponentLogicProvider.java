@@ -5,6 +5,8 @@ import javax.annotation.Nonnull;
 @FunctionalInterface
 public interface IComponentLogicProvider {
 
+    String TEXTURE_PARTICLE = "#particle";
+
     @Nonnull
     IComponentLogic buildLogic(@Nonnull ComponentModel.Register componentRegister, @Nonnull ModelTextureMapping textureMapping);
 
@@ -22,6 +24,6 @@ public interface IComponentLogicProvider {
 
     @Nonnull
     default ModelTextureMapping getDefaultTextureMappings() {
-        return ModelTextureMapping.EMPTY;
+        return ModelTextureMapping.empty();
     }
 }

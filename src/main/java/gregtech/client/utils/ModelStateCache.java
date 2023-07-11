@@ -1,6 +1,6 @@
 package gregtech.client.utils;
 
-import gregtech.client.model.component.ISpecialBakedModel;
+import gregtech.client.model.ISpecialBakedModel;
 import gregtech.client.model.component.ModelStates;
 import gregtech.common.blocks.special.ISpecialState;
 

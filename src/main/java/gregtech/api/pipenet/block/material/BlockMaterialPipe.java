@@ -8,19 +8,19 @@ import gregtech.api.pipenet.block.IPipeType;
 import gregtech.api.pipenet.tile.IPipeTile;
 import gregtech.api.pipenet.tile.TileEntityPipeBase;
 import gregtech.api.unification.material.Material;
+import gregtech.api.unification.material.info.MaterialIconType;
 import gregtech.api.unification.material.registry.MaterialRegistry;
 import gregtech.api.unification.ore.OrePrefix;
-import gregtech.client.renderer.pipe.PipeRenderer;
-import gregtech.common.blocks.MetaBlocks;
-import net.minecraft.block.state.IBlockState;
+import gregtech.client.model.SimpleStateMapper;
+import gregtech.client.model.modelfactories.BakedModelHandler;
+import gregtech.client.model.pipe.PipeModelSelector;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.model.ModelLoader;
 
 import javax.annotation.Nonnull;
-import java.util.Objects;
+import java.util.Set;
 
 public abstract class BlockMaterialPipe<PipeType extends Enum<PipeType> & IPipeType<NodeDataType> & IMaterialPipeType<NodeDataType>, NodeDataType, WorldPipeNetType extends WorldPipeNet<NodeDataType, ? extends PipeNet<NodeDataType>>> extends BlockPipe<PipeType, NodeDataType, WorldPipeNetType> {
 
@@ -88,18 +88,21 @@ public abstract class BlockMaterialPipe<PipeType extends Enum<PipeType> & IPipeT
     }
 
     @Nonnull
-    public abstract PipeRenderer getPipeRenderer();
+    public abstract Set<Material> getEnabledMaterials();
+
+    @Nonnull
+    protected abstract MaterialIconType getIconType();
 
     public void onModelRegister() {
-        ModelLoader.setCustomMeshDefinition(Item.getItemFromBlock(this), stack -> getPipeRenderer().getModelLocation());
-        for (IBlockState state : this.getBlockState().getValidStates()) {
-            ModelResourceLocation resourceLocation = new ModelResourceLocation(
-                    new ResourceLocation(GTValues.MODID, // force pipe models to always be GT's
-                            Objects.requireNonNull(this.getRegistryName()).getPath()),
-                    MetaBlocks.statePropertiesToString(state.getProperties()));
-            //noinspection ConstantConditions
-            ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(this),
-                    this.getMetaFromState(state), resourceLocation);
-        }
+        ModelResourceLocation modelId = new ModelResourceLocation(
+                GTValues.MODID + ":material_pipe_" + getIconType().name + "_" + this.pipeType.getName());
+        BakedModelHandler.addCustomBakedModel(modelId,
+                new PipeModelSelector(getIconType(), getEnabledMaterials(), this.pipeType, this::getItemMaterial));
+
+        ModelLoader.setCustomStateMapper(this, new SimpleStateMapper(modelId));
+
+        Item item = Item.getItemFromBlock(this);
+        ModelLoader.setCustomMeshDefinition(item, stack -> modelId);
+        ModelLoader.registerItemVariants(item);
     }
 }

@@ -3,8 +3,10 @@ package gregtech.api.pipenet.block;
 import codechicken.lib.raytracer.CuboidRayTraceResult;
 import codechicken.lib.raytracer.IndexedCuboid6;
 import codechicken.lib.raytracer.RayTracer;
+import codechicken.lib.texture.TextureUtils;
 import codechicken.lib.vec.Cuboid6;
-import gregtech.api.block.BuiltInRenderBlock;
+import gregtech.api.GTValues;
+import gregtech.api.block.BlockCustomParticle;
 import gregtech.api.cover.CoverBehavior;
 import gregtech.api.cover.ICoverable;
 import gregtech.api.cover.ICoverable.CoverSideData;
@@ -23,6 +25,8 @@ import gregtech.api.util.GTUtility;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.BlockFrame;
 import gregtech.common.blocks.MetaBlocks;
+import gregtech.common.blocks.special.CTMSpecialState;
+import gregtech.common.blocks.special.SimpleSpecialState;
 import gregtech.common.items.MetaItems;
 import gregtech.integration.ctm.IFacadeWrapper;
 import net.minecraft.block.Block;
@@ -31,6 +35,7 @@ import net.minecraft.block.SoundType;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -46,8 +51,10 @@ import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -59,7 +66,7 @@ import java.util.Random;
 import static gregtech.api.metatileentity.MetaTileEntity.FULL_CUBE_COLLISION;
 
 @SuppressWarnings("deprecation")
-public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<NodeDataType>, NodeDataType, WorldPipeNetType extends WorldPipeNet<NodeDataType, ? extends PipeNet<NodeDataType>>> extends BuiltInRenderBlock implements ITileEntityProvider, IFacadeWrapper, IBlockAppearance {
+public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<NodeDataType>, NodeDataType, WorldPipeNetType extends WorldPipeNet<NodeDataType, ? extends PipeNet<NodeDataType>>> extends BlockCustomParticle implements ITileEntityProvider, IFacadeWrapper, IBlockAppearance {
 
     protected final ThreadLocal<IPipeTile<PipeType, NodeDataType>> tileEntities = new ThreadLocal<>();
 
@@ -620,6 +627,38 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
     @Override
     public boolean supportsVisualConnections() {
         return true;
+    }
+
+    @Nonnull
+    @Override
+    public BlockRenderLayer getRenderLayer() {
+        return BlockRenderLayer.CUTOUT_MIPPED;
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public boolean isOpaqueCube(@Nonnull IBlockState state) {
+        return false;
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public boolean isFullCube(@Nonnull IBlockState state) {
+        return false;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    protected Pair<TextureAtlasSprite, Integer> getParticleTexture(World world, BlockPos blockPos) {
+        return Pair.of(TextureUtils.getMissingSprite(), 0xFFFFFF); // TODO
+    }
+
+    @Override
+    @Nonnull
+    public IBlockState getExtendedState(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        return Loader.isModLoaded(GTValues.MODID_CTM) ?
+                new CTMSpecialState(state, world, pos) :
+                new SimpleSpecialState(state, world, pos);
     }
 
     public static class PipeConnectionData {

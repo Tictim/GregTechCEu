@@ -5,7 +5,7 @@ import gregtech.api.unification.material.info.MaterialIconSet;
 import gregtech.api.unification.material.info.MaterialIconType;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
@@ -27,28 +27,56 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.UnaryOperator;
 
 @Mod.EventBusSubscriber(modid = GTValues.MODID, value = Side.CLIENT)
 public class MaterialBlockModelLoader {
 
-    private static final ObjectOpenHashSet<Entry> ENTRIES = new ObjectOpenHashSet<>();
+    private static final Object2ObjectOpenHashMap<Entry, ModelResourceLocation> ENTRIES = new Object2ObjectOpenHashMap<>();
+
+    @Nonnull
+    public static ModelResourceLocation loadBlockModel(@Nonnull MaterialIconType iconType,
+                                                       @Nonnull MaterialIconSet iconSet) {
+        return loadBlockModel(iconType, iconSet, null);
+    }
+
+    @Nonnull
+    public static ModelResourceLocation loadBlockModel(@Nonnull MaterialIconType iconType,
+                                                       @Nonnull MaterialIconSet iconSet,
+                                                       @Nullable String variant) {
+        return ENTRIES.computeIfAbsent(new Entry(iconType, iconSet, variant == null ? "" : variant),
+                entry -> createModelId(entry, "normal"));
+    }
+
+    @Nonnull
+    public static ModelResourceLocation loadItemModel(@Nonnull MaterialIconType iconType,
+                                                      @Nonnull MaterialIconSet iconSet) {
+        return ENTRIES.computeIfAbsent(new Entry(iconType, iconSet, null),
+                entry -> createModelId(entry, "inventory"));
+    }
+
+    private static ModelResourceLocation createModelId(@Nonnull Entry entry, @Nonnull String variant) {
+        StringBuilder stb = new StringBuilder();
+        stb.append("material_").append(entry.iconType.name).append("_").append(entry.iconSet.name);
+        if (entry.variant != null && !entry.variant.equals("") && !entry.variant.equals("normal")) {
+            stb.append("_").append(entry.variant.replace('=', '_').replace(',', '_'));
+        }
+        return new ModelResourceLocation(GTUtility.gregtechId(stb.toString()), variant);
+    }
 
     @SubscribeEvent
     public static void onTextureStitch(TextureStitchEvent.Pre event) {
-        for (Entry e : ENTRIES) {
-            e.blockModelCache = loadModel(event, e.getBlockModelLocation());
-            e.itemModelCache = loadModel(event, e.getItemModelLocation());
+        for (Entry e : ENTRIES.keySet()) {
+            e.modelCache = loadModel(event, e);
         }
     }
 
     @Nullable
-    private static IModel loadModel(TextureStitchEvent.Pre event, ResourceLocation modelLocation) {
+    private static IModel loadModel(TextureStitchEvent.Pre event, Entry entry) {
         IModel model;
         try {
-            model = ModelLoaderRegistry.getModel(modelLocation);
+            model = ModelLoaderRegistry.getModel(entry.getModelLocation());
         } catch (Exception e) {
-            GTLog.logger.error("Failed to load material model {}:", modelLocation, e);
+            GTLog.logger.error("Failed to load material model {}:", entry, e);
             return null;
         }
         for (ResourceLocation texture : model.getTextures()) {
@@ -64,30 +92,21 @@ public class MaterialBlockModelLoader {
                 ReflectionHelper.getPrivateValue(ModelLoader.class, event.getModelLoader(), "stateModels", null) :
                 null;
 
-        for (Entry e : ENTRIES) {
-            bakeAndRegister(event.getModelRegistry(), e.itemModelCache, e.getItemModelId(), e.modelFunction, stateModels);
-            bakeAndRegister(event.getModelRegistry(), e.blockModelCache, e.getBlockModelId(), e.modelFunction, stateModels);
+        for (var e : ENTRIES.entrySet()) {
+            bakeAndRegister(event.getModelRegistry(), e.getKey().modelCache, e.getValue(), stateModels);
         }
     }
 
     private static void bakeAndRegister(@Nonnull IRegistry<ModelResourceLocation, IBakedModel> registry,
                                         @Nullable IModel model,
                                         @Nonnull ModelResourceLocation modelId,
-                                        @Nullable UnaryOperator<IBakedModel> modelFunction,
                                         @Nullable Map<ModelResourceLocation, IModel> stateModels) {
         if (model == null) {
             // insert missing model to prevent cluttering logs with useless model loading error messages
             registry.putObject(modelId, bake(ModelLoaderRegistry.getMissingModel()));
             return;
         }
-        IBakedModel baked = bake(model);
-        if (modelFunction != null) {
-            baked = modelFunction.apply(baked);
-            if (baked == null) {
-                throw new IllegalStateException("Model function returned null");
-            }
-        }
-        registry.putObject(modelId, baked);
+        registry.putObject(modelId, bake(model));
 
         if (stateModels != null) { // CTM needs the model to be present on this field to properly replace the model
             stateModels.put(modelId, model);
@@ -101,61 +120,30 @@ public class MaterialBlockModelLoader {
                 t -> Minecraft.getMinecraft().getTextureMapBlocks().getAtlasSprite(t.toString()));
     }
 
-    public static final class Entry {
+    private static final class Entry {
 
         private final MaterialIconType iconType;
         private final MaterialIconSet iconSet;
-        private final String stateProperties;
-        @Nullable
-        private final UnaryOperator<IBakedModel> modelFunction;
+        private final String variant;
 
         @Nullable
-        private ModelResourceLocation blockModelId;
-        @Nullable
-        private ModelResourceLocation itemModelId;
-
-        @Nullable
-        private IModel itemModelCache;
-        @Nullable
-        private IModel blockModelCache;
+        private IModel modelCache;
 
         private Entry(@Nonnull MaterialIconType iconType,
                       @Nonnull MaterialIconSet iconSet,
-                      @Nullable String stateProperties,
-                      @Nullable UnaryOperator<IBakedModel> modelFunction) {
+                      @Nullable String variant) {
             this.iconType = iconType;
             this.iconSet = iconSet;
-            this.stateProperties = stateProperties == null ? "" : stateProperties;
-            this.modelFunction = modelFunction;
+            this.variant = variant;
         }
 
-        public ModelResourceLocation getBlockModelLocation() {
-            return new ModelResourceLocation(iconType.getBlockstatesPath(iconSet), this.stateProperties);
-        }
-
-        public ResourceLocation getItemModelLocation() {
-            ResourceLocation itemModelPath = iconType.getItemModelPath(iconSet);
-            return new ResourceLocation(itemModelPath.getNamespace(), "item/" + itemModelPath.getPath());
-        }
-
-        public ModelResourceLocation getBlockModelId() {
-            if (blockModelId == null) {
-                this.blockModelId = new ModelResourceLocation(
-                        new ResourceLocation(GTValues.MODID,
-                                "material_" + iconType.name + "_" + iconSet.name),
-                        "normal");
+        public ResourceLocation getModelLocation() {
+            if (this.variant != null) {
+                return new ModelResourceLocation(iconType.getBlockstatesPath(iconSet), variant);
+            } else {
+                ResourceLocation itemModelPath = iconType.getItemModelPath(iconSet);
+                return new ResourceLocation(itemModelPath.getNamespace(), "item/" + itemModelPath.getPath());
             }
-            return blockModelId;
-        }
-
-        public ModelResourceLocation getItemModelId() {
-            if (itemModelId == null) {
-                this.itemModelId = new ModelResourceLocation(
-                        new ResourceLocation(GTValues.MODID,
-                                "material_" + iconType.name + "_" + iconSet.name),
-                        "inventory");
-            }
-            return itemModelId;
         }
 
         @Override
@@ -163,14 +151,12 @@ public class MaterialBlockModelLoader {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             Entry entry = (Entry) o;
-            return iconType.equals(entry.iconType) &&
-                    iconSet.equals(entry.iconSet) &&
-                    Objects.equals(stateProperties, entry.stateProperties);
+            return Objects.equals(variant, entry.variant) && iconType.equals(entry.iconType) && iconSet.equals(entry.iconSet);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(iconType, iconSet, stateProperties);
+            return Objects.hash(iconType, iconSet, variant);
         }
 
         @Override
@@ -178,36 +164,8 @@ public class MaterialBlockModelLoader {
             return "Entry{" +
                     "iconType=" + iconType +
                     ", iconSet=" + iconSet +
-                    ", stateProperties='" + stateProperties + '\'' +
+                    ", variant=" + variant +
                     '}';
-        }
-    }
-
-    public static final class EntryBuilder {
-        private final MaterialIconType iconType;
-        private final MaterialIconSet iconSet;
-        @Nullable
-        private String stateProperties = null;
-        @Nullable
-        private UnaryOperator<IBakedModel> modelFunction = null;
-
-        public EntryBuilder(@Nonnull MaterialIconType iconType, @Nonnull MaterialIconSet iconSet) {
-            this.iconType = iconType;
-            this.iconSet = iconSet;
-        }
-
-        public EntryBuilder setStateProperties(@Nullable String stateProperties) {
-            this.stateProperties = stateProperties;
-            return this;
-        }
-
-        public EntryBuilder setModelFunction(@Nullable UnaryOperator<IBakedModel> modelFunction) {
-            this.modelFunction = modelFunction;
-            return this;
-        }
-
-        public Entry register() {
-            return ENTRIES.addOrGet(new Entry(iconType, iconSet, stateProperties, modelFunction));
         }
     }
 }

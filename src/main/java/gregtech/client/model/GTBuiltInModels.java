@@ -43,16 +43,29 @@ import java.util.regex.Pattern;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public enum GregTechBuiltInModelLoader implements ICustomModelLoader {
-    INSTANCE;
+public final class GTBuiltInModels implements ICustomModelLoader {
+
+    public static final String BUILTIN_VARIANT = "gt_builtin";
+
+    private static final Pattern PATTERN = Pattern.compile("(?:models/)?((?:item|block)s?/)?builtin/(.+)");
+    private static final Pattern MODEL_LOCATION_PATTERN = Pattern.compile("((?:item|block)s?/)?(.+)");
+
+    private static final GTBuiltInModels instance = new GTBuiltInModels();
+
+    public static GTBuiltInModels getLoader() {
+        return instance;
+    }
+
+    public static ModelResourceLocation builtInLocation(String domain, String path) {
+        return new ModelResourceLocation(domain + ":" + path, BUILTIN_VARIANT);
+    }
 
     private final Map<String, IModel> prebuiltModels = new Object2ObjectOpenHashMap<>();
-    private final Pattern pattern = Pattern.compile("(?:models/)?((?:item|block)s?/)?builtin/(.+)");
-    private final Matcher matcher = pattern.matcher("");
+    private final Matcher matcher = PATTERN.matcher("");
 
     private IResourceManager resourceManager;
 
-    public void addPrebuiltModel(String modelLocation, IModel model) {
+    public void addModel(String modelLocation, IModel model) {
         if (this.prebuiltModels.putIfAbsent(Objects.requireNonNull(modelLocation), Objects.requireNonNull(model)) != null) {
             throw new IllegalStateException("Duplicated built-in model '" + modelLocation + "'");
         }
@@ -64,24 +77,24 @@ public enum GregTechBuiltInModelLoader implements ICustomModelLoader {
         if (initialized) return;
         else initialized = true;
 
-        addPrebuiltModel("frame", new ComponentModel(FrameModelLogicProvider.INSTANCE));
+        addModel("frame", new ComponentModel(FrameModelLogicProvider.INSTANCE));
 
         for (ItemPipeType itemPipeType : ItemPipeType.values()) {
-            addPrebuiltModel("item_pipe/" + itemPipeType.name,
+            addModel("item_pipe/" + itemPipeType.name,
                     new ComponentModel(new ItemPipeModelLogicProvider(itemPipeType.getThickness(), itemPipeType.isRestrictive())));
         }
         for (FluidPipeType fluidPipeType : FluidPipeType.values()) {
-            addPrebuiltModel("fluid_pipe/" + fluidPipeType.name,
+            addModel("fluid_pipe/" + fluidPipeType.name,
                     new ComponentModel(new FluidPipeModelLogicProvider(fluidPipeType.getThickness())));
         }
         for (Insulation insulation : Insulation.values()) {
-            addPrebuiltModel("cable/" + insulation.name,
+            addModel("cable/" + insulation.name,
                     new ComponentModel(new CableModelLogicProvider(insulation.getThickness(), insulation.isCable())));
         }
 
-        addPrebuiltModel("optical_pipe",
+        addModel("optical_pipe",
                 new ComponentModel(new OpticalPipeModelLogicProvider(OpticalPipeType.NORMAL.getThickness())));
-        addPrebuiltModel("laser_pipe",
+        addModel("laser_pipe",
                 new ComponentModel(new LaserPipeModelLogicProvider(LaserPipeType.NORMAL.getThickness())));
     }
 
@@ -92,18 +105,21 @@ public enum GregTechBuiltInModelLoader implements ICustomModelLoader {
 
     @Override
     public boolean accepts(ResourceLocation modelLocation) {
-        return !(modelLocation instanceof ModelResourceLocation) &&
-                modelLocation.getNamespace().equals(GTValues.MODID) &&
-                matcher.reset(modelLocation.getPath()).matches();
+        if (modelLocation instanceof ModelResourceLocation mrl) {
+            return mrl.getVariant().equals(BUILTIN_VARIANT) &&
+                    this.matcher.reset(modelLocation.getPath()).usePattern(MODEL_LOCATION_PATTERN).matches();
+        } else {
+            return modelLocation.getNamespace().equals(GTValues.MODID) &&
+                    this.matcher.reset(modelLocation.getPath()).usePattern(PATTERN).matches();
+        }
     }
 
     @Override
     public IModel loadModel(ResourceLocation modelLocation) throws Exception {
         String directory = matcher.group(1);
-        if (directory == null) {
-            IModel prebuiltModel = prebuiltModels.get(matcher.group(2));
-            if (prebuiltModel != null) return prebuiltModel;
-        }
+
+        IModel prebuiltModel = prebuiltModels.get(matcher.group(2));
+        if (prebuiltModel != null) return prebuiltModel;
 
         ResourceLocation fileLocation = new ResourceLocation(modelLocation.getNamespace(),
                 "models/" + (directory == null ? "" : directory) + matcher.group(2) + ".json");

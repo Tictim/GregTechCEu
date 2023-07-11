@@ -3,7 +3,6 @@ package gregtech.client.model.pipe;
 import gregtech.client.model.component.*;
 import gregtech.client.model.frame.FrameModelLogicProvider;
 import gregtech.client.utils.MatrixUtils;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.util.EnumFacing;
 
 import javax.annotation.CheckReturnValue;
@@ -25,19 +24,19 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
     public static final int TINT_FRAME_INNER = FrameModelLogicProvider.TINT_INNER;
     public static final int TINT_OVERLAY = 3;
 
-    protected static final float PIPE_EXTRUSION_SIZE = 1 / 16f;
+    public static final float PIPE_EXTRUSION_SIZE = 1 / 16f;
 
-    protected static final String TEXTURE_ATLAS = "#atlas";
-    protected static final String TEXTURE_ATLAS_JOINTED = "#atlas_jointed";
-    protected static final String TEXTURE_SIDE = "#side";
-    protected static final String TEXTURE_OPEN = "#open";
-    protected static final String TEXTURE_EXTRUSION = "#extrusion";
+    public static final String TEXTURE_ATLAS = "#atlas";
+    public static final String TEXTURE_ATLAS_JOINTED = "#atlas_jointed";
+    public static final String TEXTURE_SIDE = "#side";
+    public static final String TEXTURE_IN = "#in";
+    public static final String TEXTURE_EXTRUSION = "#extrusion";
 
     public static final PipeModelTexture DEFAULT_TEXTURES = new PipeModelTexture(
             new PipeSideAtlasTexture(TEXTURE_ATLAS, TINT_PIPE),
             new PipeSideAtlasTexture(TEXTURE_ATLAS_JOINTED, TINT_PIPE),
             new ComponentTexture(TEXTURE_SIDE, TINT_PIPE),
-            new ComponentTexture(TEXTURE_OPEN, TINT_PIPE),
+            new ComponentTexture(TEXTURE_IN, TINT_PIPE),
             new ComponentTexture(TEXTURE_EXTRUSION, TINT_PIPE)
     );
 
@@ -54,10 +53,11 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
     @Nonnull
     @Override
     public ModelTextureMapping getDefaultTextureMappings() {
-        Object2ObjectOpenHashMap<String, String> map = new Object2ObjectOpenHashMap<>();
-        map.put(TEXTURE_ATLAS_JOINTED, TEXTURE_ATLAS);
-        map.put(TEXTURE_EXTRUSION, TEXTURE_SIDE);
-        return new ModelTextureMapping(map);
+        return ModelTextureMapping.builder()
+                .add(TEXTURE_ATLAS_JOINTED, TEXTURE_ATLAS)
+                .add(TEXTURE_EXTRUSION, TEXTURE_SIDE)
+                .add(TEXTURE_PARTICLE, TEXTURE_SIDE)
+                .build();
     }
 
     protected PipeModelTexture getModelTextures() {
@@ -132,14 +132,14 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                 facing == SOUTH ? 16 : modelEnd);
         if (closed) {
             PipeSideAtlasTexture sideAtlas = textures.sideAtlas(true);
-            if (sideAtlas != null && textureMapping.has(sideAtlas.textureName)) {
+            if (sideAtlas != null && textureMapping.has(sideAtlas.getTextureName())) {
                 sideAtlas.setAtlasTexture(c, 0, facing);
             } else if (textures.side != null) {
                 c.addFace(textures.side, facing);
             }
         } else {
-            if (textures.open != null) {
-                c.addFace(textures.open, facing);
+            if (textures.in != null) {
+                c.addFace(textures.in, facing);
             }
         }
         consumer.accept(c);
@@ -162,13 +162,13 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
         }
         if (closed) {
             PipeSideAtlasTexture sideAtlas = textures.sideAtlas(true);
-            if (sideAtlas != null && textureMapping.has(sideAtlas.textureName)) {
+            if (sideAtlas != null && textureMapping.has(sideAtlas.getTextureName())) {
                 sideAtlas.setAtlasTexture(c, 0, facing);
             } else if (textures.side != null) {
                 c.addFace(textures.side, facing, facing);
             }
-        } else if (textures.open != null) {
-            c.addFace(textures.open, facing, facing);
+        } else if (textures.in != null) {
+            c.addFace(textures.in, facing, facing);
         }
         consumer.accept(c);
     }
@@ -179,8 +179,8 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
         Component c = new Component(
                 modelStart, modelStart, modelStart,
                 modelEnd, modelEnd, modelEnd);
-        if (textures.open != null) {
-            c.addAllFaces(textures.open, true);
+        if (textures.in != null) {
+            c.addAllFaces(textures.in, true);
         }
         return componentRegister.add(c);
     }
@@ -197,15 +197,15 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                 connectedSide == UP ? 16 : modelEnd,
                 connectedSide == SOUTH ? 16 : modelEnd);
         PipeSideAtlasTexture sideAtlas = textures.sideAtlas(false);
-        if (sideAtlas != null && textureMapping.has(sideAtlas.textureName)) {
+        if (sideAtlas != null && textureMapping.has(sideAtlas.getTextureName())) {
             sideAtlas.setAtlasTexture(c,
                     PipeModelLogic.getBlockConnection(connectedSide),
                     f -> f.getAxis() != connectedSide.getAxis());
         } else if (textures.side != null) {
             c.addFaces(textures.side, f -> f.getAxis() != connectedSide.getAxis());
         }
-        if (textures.open != null) {
-            c.addFace(textures.open, connectedSide.getOpposite());
+        if (textures.in != null) {
+            c.addFace(textures.in, connectedSide.getOpposite());
         }
         return componentRegister.add(c);
     }
@@ -222,7 +222,7 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                 axis == Axis.Y ? 16 : modelEnd,
                 axis == Axis.Z ? 16 : modelEnd);
         PipeSideAtlasTexture sideAtlas = textures.sideAtlas(false);
-        if (sideAtlas != null && textureMapping.has(sideAtlas.textureName)) {
+        if (sideAtlas != null && textureMapping.has(sideAtlas.getTextureName())) {
             sideAtlas.setAtlasTexture(c, PipeModelLogic.getBlockConnection(
                     EnumFacing.getFacingFromAxis(AxisDirection.NEGATIVE, axis),
                     EnumFacing.getFacingFromAxis(AxisDirection.POSITIVE, axis)
@@ -252,7 +252,7 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                         side == SOUTH ? 16 : side == NORTH ? modelStart : modelEnd);
 
                 PipeSideAtlasTexture sideAtlas = textures.sideAtlas(jointed);
-                if (sideAtlas != null && textureMapping.has(sideAtlas.textureName)) {
+                if (sideAtlas != null && textureMapping.has(sideAtlas.getTextureName())) {
                     sideAtlas.setAtlasTexture(c, blockConnections, f -> f.getAxis() != side.getAxis());
                 } else if (textures.side != null) {
                     c.addFaces(textures.side, f -> f.getAxis() != side.getAxis());
@@ -268,7 +268,7 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                 }
 
                 PipeSideAtlasTexture sideAtlas = textures.sideAtlas(false);
-                if (sideAtlas != null && textureMapping.has(sideAtlas.textureName)) {
+                if (sideAtlas != null && textureMapping.has(sideAtlas.getTextureName())) {
                     sideAtlas.setAtlasTexture(center, blockConnections, side);
                 } else if (textures.side != null) {
                     center.addFace(textures.side, side);
@@ -289,19 +289,19 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
         @Nullable
         public final ComponentTexture side;
         @Nullable
-        public final ComponentTexture open;
+        public final ComponentTexture in;
         @Nullable
         public final ComponentTexture extrusion;
 
         public PipeModelTexture(@Nullable PipeSideAtlasTexture atlas,
                                 @Nullable PipeSideAtlasTexture jointedAtlas,
                                 @Nullable ComponentTexture side,
-                                @Nullable ComponentTexture open,
+                                @Nullable ComponentTexture in,
                                 @Nullable ComponentTexture extrusion) {
             this.atlas = atlas;
             this.jointedAtlas = jointedAtlas;
             this.side = side;
-            this.open = open;
+            this.in = in;
             this.extrusion = extrusion;
         }
 
@@ -321,8 +321,8 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
         }
 
         @Nonnull
-        public ComponentTexture expectOpen() {
-            return Objects.requireNonNull(open, "open == null");
+        public ComponentTexture expectIn() {
+            return Objects.requireNonNull(in, "in == null");
         }
 
         @Nonnull
@@ -343,7 +343,7 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                     "atlas=" + atlas +
                     ", jointedAtlas=" + jointedAtlas +
                     ", side=" + side +
-                    ", open=" + open +
+                    ", in=" + in +
                     ", extrusion=" + extrusion +
                     '}';
         }

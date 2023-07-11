@@ -17,7 +17,7 @@ public class ItemPipeModelLogicProvider extends PipeModelLogicProvider {
             new PipeSideAtlasTexture(TEXTURE_RESTRICTED_OVERLAY,
                     i -> new ComponentTexture(DEFAULT_TEXTURES.expectJointedAtlas().get(i), TEXTURE_RESTRICTED_OVERLAY, TINT_OVERLAY)),
             new ComponentTexture(DEFAULT_TEXTURES.side, TEXTURE_RESTRICTED_OVERLAY, TINT_OVERLAY),
-            DEFAULT_TEXTURES.open,
+            DEFAULT_TEXTURES.in,
             new ComponentTexture(DEFAULT_TEXTURES.extrusion, TEXTURE_RESTRICTED_OVERLAY, TINT_OVERLAY)
     );
 
@@ -33,10 +33,10 @@ public class ItemPipeModelLogicProvider extends PipeModelLogicProvider {
     public IComponentLogic buildLogic(@Nonnull ComponentModel.Register componentRegister, @Nonnull ModelTextureMapping textureMapping) {
         return new ItemPipeModelLogic(
                 defaultBaseModels(componentRegister, textureMapping),
-                defaultEndModels(componentRegister, textureMapping, false),
                 defaultEndModels(componentRegister, textureMapping, true),
-                defaultExtrusionModels(componentRegister, textureMapping, false),
-                defaultExtrusionModels(componentRegister, textureMapping, true));
+                defaultEndModels(componentRegister, textureMapping, false),
+                defaultExtrusionModels(componentRegister, textureMapping, true),
+                defaultExtrusionModels(componentRegister, textureMapping, false));
     }
 
     @Override

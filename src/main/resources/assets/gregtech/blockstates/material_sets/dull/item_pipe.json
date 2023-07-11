@@ -1,0 +1,45 @@
+{
+    "forge_marker": 1,
+    "defaults": {
+        "textures": {
+            "side": "gregtech:blocks/pipe/pipe_side",
+            "restricted_overlay": "gregtech:blocks/pipe/pipe_restrictive"
+        }
+    },
+    "variants": {
+        "type": {
+            "small": {
+                "model": "gregtech:builtin/item_pipe/small",
+                "textures": { "in": "gregtech:blocks/pipe/pipe_small_in" }
+            },
+            "normal": {
+                "model": "gregtech:builtin/item_pipe/normal",
+                "textures": { "in": "gregtech:blocks/pipe/pipe_normal_in" }
+            },
+            "large": {
+                "model": "gregtech:builtin/item_pipe/large",
+                "textures": { "in": "gregtech:blocks/pipe/pipe_large_in" }
+            },
+            "huge": {
+                "model": "gregtech:builtin/item_pipe/huge",
+                "textures": { "in": "gregtech:blocks/pipe/pipe_huge_in" }
+            },
+            "small_restrictive": {
+                "model": "gregtech:builtin/item_pipe/small_restrictive",
+                "textures": { "in": "gregtech:blocks/pipe/pipe_small_in" }
+            },
+            "normal_restrictive": {
+                "model": "gregtech:builtin/item_pipe/normal_restrictive",
+                "textures": { "in": "gregtech:blocks/pipe/pipe_normal_in" }
+            },
+            "large_restrictive": {
+                "model": "gregtech:builtin/item_pipe/large_restrictive",
+                "textures": { "in": "gregtech:blocks/pipe/pipe_large_in" }
+            },
+            "huge_restrictive": {
+                "model": "gregtech:builtin/item_pipe/huge_restrictive",
+                "textures": { "in": "gregtech:blocks/pipe/pipe_huge_in" }
+            }
+        }
+    }
+}

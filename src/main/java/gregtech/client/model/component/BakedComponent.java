@@ -1,7 +1,6 @@
 package gregtech.client.model.component;
 
 import com.google.common.collect.ImmutableList;
-import gregtech.api.util.GTLog;
 import gregtech.client.utils.BloomEffectUtil;
 import gregtech.client.utils.CubeVertex;
 import gregtech.client.utils.MatrixUtils;
@@ -89,14 +88,6 @@ public final class BakedComponent {
                     bake(model, format, mat, bakedTextureGetter, c, builder);
                 }
                 this.quads[partID] = builder.build();
-            }
-        }
-
-        GTLog.logger.info("{} quads baked", Arrays.stream(this.quads).mapToInt(l -> l.size()).sum());
-        for (int i = 0; i < quads.length; i++) {
-            GTLog.logger.info(":::: Part #{}: {} elements", i, quads[i].size());
-            for (int j = 0; j < quads[i].size(); j++) {
-                GTLog.logger.info("[[{}]]\n{}", j, quads[i].get(j));
             }
         }
     }
@@ -252,5 +243,19 @@ public final class BakedComponent {
                 }
             }
         }
+    }
+
+    @Nonnull
+    public String prettyPrintComponents() {
+        StringBuilder b = new StringBuilder();
+        b.append(Arrays.stream(this.quads).mapToInt(l -> l.size()).sum()).append(" quads");
+        for (int i = 0; i < quads.length; i++) {
+            b.append("\n:::: Part #").append(i).append(": ").append(quads[i].size()).append(" elements");
+            for (int j = 0; j < quads[i].size(); j++) {
+                b.append("\n[[").append(j).append("]]");
+                b.append("\n").append(quads[i].get(j));
+            }
+        }
+        return b.toString();
     }
 }

@@ -1,0 +1,34 @@
+{
+    "forge_marker": 1,
+    "defaults": {
+        "textures": {
+            "side": "gregtech:blocks/pipe/pipe_side_wood",
+            "blocked_overlay": "gregtech:blocks/pipe/pipe_blocked"
+        }
+    },
+    "variants": {
+        "type": {
+            "small": {
+                "model": "gregtech:builtin/fluid_pipe/small",
+                "textures": {
+                    "atlas": "gregtech:blocks/pipe/pipe_small_atlas_wood",
+                    "in": "gregtech:blocks/pipe/pipe_small_in_wood"
+                }
+            },
+            "normal": {
+                "model": "gregtech:builtin/fluid_pipe/normal",
+                "textures": {
+                    "atlas": "gregtech:blocks/pipe/pipe_normal_atlas_wood",
+                    "in": "gregtech:blocks/pipe/pipe_normal_in_wood"
+                }
+            },
+            "large": {
+                "model": "gregtech:builtin/fluid_pipe/large",
+                "textures": {
+                    "atlas": "gregtech:blocks/pipe/pipe_large_atlas_wood",
+                    "in": "gregtech:blocks/pipe/pipe_large_in_wood"
+                }
+            }
+        }
+    }
+}

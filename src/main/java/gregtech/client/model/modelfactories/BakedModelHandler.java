@@ -3,6 +3,8 @@ package gregtech.client.model.modelfactories;
 import codechicken.lib.render.item.CCRenderItem;
 import codechicken.lib.texture.TextureUtils;
 import codechicken.lib.util.TransformUtils;
+import gregtech.api.GTValues;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.ItemMeshDefinition;
@@ -24,10 +26,10 @@ import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.client.model.PerspectiveMapWrapper;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
@@ -36,11 +38,13 @@ import javax.vecmath.Matrix4f;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
-@SideOnly(Side.CLIENT)
+@Mod.EventBusSubscriber(modid = GTValues.MODID, value = Side.CLIENT)
 public class BakedModelHandler {
 
     private static final StateMapperBase SIMPLE_STATE_MAPPER = new StateMapperBase() {
+        @Nonnull
         @Override
         protected ModelResourceLocation getModelResourceLocation(IBlockState state) {
             return getSimpleModelLocation(state.getBlock());
@@ -49,15 +53,17 @@ public class BakedModelHandler {
     private static final ItemMeshDefinition SIMPLE_MESH_DEFINITION = (stack) ->
             getSimpleModelLocation(Block.getBlockFromItem(stack.getItem()));
 
-    private static ModelResourceLocation getSimpleModelLocation(Block block) {
+    @Nonnull
+    private static ModelResourceLocation getSimpleModelLocation(@Nonnull Block block) {
         return new ModelResourceLocation(Block.REGISTRY.getNameForObject(block), "");
     }
 
-    private final List<Tuple<Block, String>> builtInBlocks = new ArrayList<>();
-    private final List<BlockFluidBase> fluidBlocks = new ArrayList<>();
+    private static final List<Tuple<Block, String>> builtInBlocks = new ArrayList<>();
+    private static final List<BlockFluidBase> fluidBlocks = new ArrayList<>();
+    private static final Map<ModelResourceLocation, IBakedModel> customBakedModels = new Object2ObjectOpenHashMap<>();
 
-    public void addBuiltInBlock(Block block, String particleTexture) {
-        this.builtInBlocks.add(new Tuple<>(block, particleTexture));
+    public static void addBuiltInBlock(@Nonnull Block block, @Nonnull String particleTexture) {
+        builtInBlocks.add(new Tuple<>(block, particleTexture));
         ModelLoader.setCustomStateMapper(block, SIMPLE_STATE_MAPPER);
         Item itemFromBlock = Item.getItemFromBlock(block);
         if (itemFromBlock != Items.AIR) {
@@ -65,13 +71,18 @@ public class BakedModelHandler {
         }
     }
 
-    public void addFluidBlock(BlockFluidBase fluidBase) {
-        this.fluidBlocks.add(fluidBase);
+    public static void addFluidBlock(@Nonnull BlockFluidBase fluidBase) {
+        fluidBlocks.add(fluidBase);
         ModelLoader.setCustomStateMapper(fluidBase, SIMPLE_STATE_MAPPER);
     }
 
+    public static void addCustomBakedModel(@Nonnull ModelResourceLocation modelLocation,
+                                           @Nonnull IBakedModel bakedModel) {
+        customBakedModels.put(modelLocation, bakedModel);
+    }
+
     @SubscribeEvent
-    public void onModelsBake(ModelBakeEvent event) {
+    public static void onModelsBake(ModelBakeEvent event) {
         for (BlockFluidBase fluidBlock : fluidBlocks) {
             Fluid fluid = ObfuscationReflectionHelper.getPrivateValue(BlockFluidBase.class, fluidBlock, "definedFluid");
             ModelFluid modelFluid = new ModelFluid(fluid);
@@ -83,6 +94,9 @@ public class BakedModelHandler {
             ModelResourceLocation resourceLocation = getSimpleModelLocation(tuple.getFirst());
             ModelBuiltInRenderer bakedModel = new ModelBuiltInRenderer(tuple.getSecond());
             event.getModelRegistry().putObject(resourceLocation, bakedModel);
+        }
+        for (var e : customBakedModels.entrySet()) {
+            event.getModelRegistry().putObject(e.getKey(), e.getValue());
         }
     }
 

@@ -9,24 +9,17 @@ import gregtech.api.pipenet.block.BlockPipe;
 import gregtech.api.pipenet.tile.IPipeTile;
 import gregtech.api.pipenet.tile.TileEntityPipeBase;
 import gregtech.api.util.GTUtility;
-import gregtech.client.renderer.pipe.OpticalPipeRenderer;
 import gregtech.common.pipelike.optical.net.WorldOpticalPipeNet;
 import gregtech.common.pipelike.optical.tile.TileEntityOpticalPipe;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -41,11 +34,6 @@ public class BlockOpticalPipe extends BlockPipe<OpticalPipeType, OpticalPipeProp
         this.properties = new OpticalPipeProperties();
         setCreativeTab(GregTechAPI.TAB_GREGTECH_PIPES);
         setHarvestLevel(ToolClasses.WIRE_CUTTER, 1);
-    }
-
-    @Override
-    protected Pair<TextureAtlasSprite, Integer> getParticleTexture(@Nonnull World world, BlockPos blockPos) {
-        return OpticalPipeRenderer.INSTANCE.getParticleTexture((TileEntityOpticalPipe) world.getTileEntity(blockPos));
     }
 
     @Override
@@ -135,13 +123,5 @@ public class BlockOpticalPipe extends BlockPipe<OpticalPipeType, OpticalPipeProp
         return ToolHelper.isTool(stack, ToolClasses.WIRE_CUTTER) ||
                 GTUtility.isCoverBehaviorItem(stack, () -> hasCover(getPipeTileEntity(world, pos)),
                         coverDef -> ICoverable.canPlaceCover(coverDef, getPipeTileEntity(world, pos).getCoverableImplementation()));
-    }
-
-    @Override
-    @Nonnull
-    @SideOnly(Side.CLIENT)
-    @SuppressWarnings("deprecation")
-    public EnumBlockRenderType getRenderType(@Nonnull IBlockState state) {
-        return OpticalPipeRenderer.INSTANCE.getBlockRenderType();
     }
 }

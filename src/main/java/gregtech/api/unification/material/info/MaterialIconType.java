@@ -92,6 +92,10 @@ public class MaterialIconType {
     public static final MaterialIconType block = new MaterialIconType("block");
     public static final MaterialIconType frameGt = new MaterialIconType("frameGt");
 
+    public static final MaterialIconType cable = new MaterialIconType("cable");
+    public static final MaterialIconType fluidPipe = new MaterialIconType("fluid_pipe");
+    public static final MaterialIconType itemPipe = new MaterialIconType("item_pipe");
+
     // USED FOR GREGIFICATION ADDON
     public static final MaterialIconType seed = new MaterialIconType("seed");
     public static final MaterialIconType crop = new MaterialIconType("crop");

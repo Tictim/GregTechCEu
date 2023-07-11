@@ -11,12 +11,11 @@ import gregtech.api.unification.stack.UnificationEntry;
 import gregtech.api.util.FluidTooltipUtil;
 import gregtech.api.util.IBlockOre;
 import gregtech.api.util.ModCompatibility;
-import gregtech.client.model.GregTechBuiltInModelLoader;
+import gregtech.client.model.GTBuiltInModels;
 import gregtech.client.model.customtexture.CustomTextureModelHandler;
 import gregtech.client.model.customtexture.MetadataSectionCTM;
 import gregtech.client.renderer.handler.FacadeRenderer;
 import gregtech.client.renderer.handler.MetaTileEntityRenderer;
-import gregtech.client.renderer.pipe.*;
 import gregtech.client.utils.TooltipHelper;
 import gregtech.common.CommonProxy;
 import gregtech.common.ConfigHolder;
@@ -78,12 +77,7 @@ public class ClientProxy extends CommonProxy {
         }
 
         MetaTileEntityRenderer.preInit();
-        ModelLoaderRegistry.registerLoader(GregTechBuiltInModelLoader.INSTANCE);
-        CableRenderer.INSTANCE.preInit();
-        FluidPipeRenderer.INSTANCE.preInit();
-        ItemPipeRenderer.INSTANCE.preInit();
-        OpticalPipeRenderer.INSTANCE.preInit();
-        LaserPipeRenderer.INSTANCE.preInit();
+        ModelLoaderRegistry.registerLoader(GTBuiltInModels.getLoader());
         MetaEntities.initRenderers();
         MetaFluids.initIconFluidSprites();
         TextureUtils.addIconRegister(MetaFluids::registerSprites);
@@ -115,7 +109,7 @@ public class ClientProxy extends CommonProxy {
         MetaBlocks.registerItemModels();
         MetaItems.registerModels();
         ToolItems.registerModels();
-        GregTechBuiltInModelLoader.INSTANCE.init();
+        GTBuiltInModels.getLoader().init();
     }
 
     @SubscribeEvent
