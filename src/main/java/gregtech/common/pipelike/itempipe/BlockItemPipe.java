@@ -70,6 +70,7 @@ public class BlockItemPipe extends BlockMaterialPipe<ItemPipeType, ItemPipePrope
         return itemPipeType.modifyProperties(enabledMaterials.getOrDefault(material, getFallbackType()));
     }
 
+    @SideOnly(Side.CLIENT)
     @Nonnull
     @Override
     public Set<Material> getEnabledMaterials() {
