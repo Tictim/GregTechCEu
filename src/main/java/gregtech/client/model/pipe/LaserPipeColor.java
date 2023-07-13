@@ -4,9 +4,6 @@ import gregtech.api.pipenet.tile.IPipeTile;
 import gregtech.common.pipelike.laser.BlockLaserPipe;
 import gregtech.common.pipelike.laser.LaserPipeProperties;
 import gregtech.common.pipelike.laser.LaserPipeType;
-import gregtech.common.pipelike.optical.BlockOpticalPipe;
-import gregtech.common.pipelike.optical.OpticalPipeProperties;
-import gregtech.common.pipelike.optical.OpticalPipeType;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
@@ -14,7 +11,7 @@ import net.minecraft.world.IBlockAccess;
 
 import javax.annotation.Nonnull;
 
-import static gregtech.client.model.pipe.PipeModelLogicProvider.TINT_OVERLAY;
+import static gregtech.client.model.pipe.PipeModelLogicProvider.*;
 
 public class LaserPipeColor extends PipeColor<BlockLaserPipe, LaserPipeType, LaserPipeProperties> {
 
@@ -33,6 +30,10 @@ public class LaserPipeColor extends PipeColor<BlockLaserPipe, LaserPipeType, Las
                                   @Nonnull BlockPos pos,
                                   int tintIndex,
                                   @Nonnull IPipeTile<LaserPipeType, LaserPipeProperties> tile) {
-        return tintIndex == TINT_OVERLAY ? tile.getPaintingColor() : -1;
+        return switch (tintIndex) {
+            case TINT_FRAME, TINT_FRAME_INNER -> materialColorOrDefault(tile.getFrameMaterial(), -1);
+            case TINT_OVERLAY -> tile.getPaintingColor();
+            default -> -1;
+        };
     }
 }

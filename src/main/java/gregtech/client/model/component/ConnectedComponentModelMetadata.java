@@ -3,6 +3,7 @@ package gregtech.client.model.component;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.block.model.IBakedModel;
+import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.vertex.VertexFormat;
 import net.minecraft.util.BlockRenderLayer;
@@ -10,6 +11,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.model.IModel;
 import net.minecraftforge.client.model.ModelLoaderRegistry;
 import net.minecraftforge.common.model.IModelState;
+import net.minecraftforge.common.model.TRSRTransformation;
 import team.chisel.ctm.api.model.IModelCTM;
 import team.chisel.ctm.api.texture.ICTMTexture;
 import team.chisel.ctm.api.util.TextureInfo;
@@ -41,6 +43,7 @@ public class ConnectedComponentModelMetadata implements IModelCTM {
                                                         @Nonnull VertexFormat format,
                                                         @Nonnull Function<ResourceLocation, TextureAtlasSprite> bakedTextureGetter,
                                                         @Nonnull TextureAtlasSprite particleTexture,
+                                                        @Nonnull Map<ItemCameraTransforms.TransformType, TRSRTransformation> cameraTransforms,
                                                         boolean ambientOcclusion,
                                                         boolean gui3d) {
         boolean hasConnectedTexture = false;
@@ -67,6 +70,7 @@ public class ConnectedComponentModelMetadata implements IModelCTM {
                         new BakedComponent(model, state, format, bakedTextureGetter),
                         model.getLogic(),
                         particleTexture,
+                        cameraTransforms,
                         ambientOcclusion,
                         gui3d));
     }

@@ -1,7 +1,9 @@
 package gregtech.client.model.component;
 
 import com.google.common.collect.Iterators;
+import gregtech.client.utils.BloomEffectUtil;
 import gregtech.client.utils.MatrixUtils;
+import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import org.lwjgl.util.vector.Matrix3f;
 import org.lwjgl.util.vector.Vector2f;
@@ -22,7 +24,8 @@ public final class ComponentTexture implements Iterable<ComponentTexture> {
     @Nullable
     private Matrix3f uvTransformation;
 
-    private boolean bloom;
+    @Nullable
+    private BlockRenderLayer renderLayer;
 
     public ComponentTexture(@Nonnull String textureName, int tintIndex) {
         this(null, textureName, tintIndex);
@@ -53,7 +56,12 @@ public final class ComponentTexture implements Iterable<ComponentTexture> {
     }
 
     public boolean isBloom() {
-        return bloom;
+        return this.renderLayer == BloomEffectUtil.BLOOM;
+    }
+
+    @Nullable
+    public BlockRenderLayer getRenderLayer() {
+        return renderLayer;
     }
 
     @Nonnull
@@ -115,8 +123,13 @@ public final class ComponentTexture implements Iterable<ComponentTexture> {
     }
 
     @Nonnull
-    public ComponentTexture setBloom(boolean value) {
-        this.bloom = value;
+    public ComponentTexture setBloom() {
+        return setRenderLayer(BloomEffectUtil.BLOOM);
+    }
+
+    @Nonnull
+    public ComponentTexture setRenderLayer(@Nullable BlockRenderLayer renderLayer) {
+        this.renderLayer = renderLayer;
         return this;
     }
 
@@ -144,7 +157,7 @@ public final class ComponentTexture implements Iterable<ComponentTexture> {
                 ", textureName='" + textureName + '\'' +
                 ", tintIndex=" + tintIndex +
                 ", uvTransformation=" + uvTransformation +
-                ", bloom=" + bloom +
+                ", renderLayer=" + renderLayer +
                 '}';
     }
 }

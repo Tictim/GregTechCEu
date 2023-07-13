@@ -132,6 +132,6 @@ public class BlockLaserPipe extends BlockPipe<LaserPipeType, LaserPipeProperties
 
     @Override
     public boolean canRenderInLayer(@NotNull IBlockState state, @NotNull BlockRenderLayer layer) {
-        return layer == BlockRenderLayer.CUTOUT || layer == BloomEffectUtil.getRealBloomLayer();
+        return layer == getRenderLayer() || layer == BloomEffectUtil.getRealBloomLayer();
     }
 }

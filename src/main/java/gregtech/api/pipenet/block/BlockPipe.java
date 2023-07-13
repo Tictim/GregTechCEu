@@ -597,11 +597,6 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
         return pipeTile.getCoverableImplementation().hasAnyCover();
     }
 
-    @Override
-    public boolean canRenderInLayer(@Nonnull IBlockState state, @Nonnull BlockRenderLayer layer) {
-        return true;
-    }
-
     @Nonnull
     @Override
     public IBlockState getFacade(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nullable EnumFacing side) {
@@ -632,7 +627,7 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
     @Nonnull
     @Override
     public BlockRenderLayer getRenderLayer() {
-        return BlockRenderLayer.CUTOUT_MIPPED;
+        return BlockRenderLayer.CUTOUT;
     }
 
     @Override

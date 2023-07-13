@@ -45,16 +45,16 @@ public class LaserPipeModelLogicProvider extends PipeModelLogicProvider {
                             TINT_OVERLAY),
                     TEXTURE_SIDE_EMISSIVE,
                     TINT_OVERLAY
-            ).setBloom(true),
+            ).setBloom(),
             DEFAULT_TEXTURES.in,
             new ComponentTexture(
                     new ComponentTexture(
-                            DEFAULT_TEXTURES.side,
+                            DEFAULT_TEXTURES.extrusion,
                             TEXTURE_EXTRUSION_OVERLAY,
                             TINT_OVERLAY),
                     TEXTURE_EXTRUSION_EMISSIVE,
                     TINT_OVERLAY
-            ).setBloom(true)
+            ).setBloom()
     );
 
     public LaserPipeModelLogicProvider(float thickness) {

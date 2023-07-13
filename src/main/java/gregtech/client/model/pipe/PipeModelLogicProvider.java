@@ -24,7 +24,7 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
     public static final int TINT_FRAME_INNER = FrameModelLogicProvider.TINT_INNER;
     public static final int TINT_OVERLAY = 3;
 
-    public static final float PIPE_EXTRUSION_SIZE = 1 / 16f;
+    public static final float PIPE_EXTRUSION_SIZE = 1;
 
     public static final String TEXTURE_ATLAS = "#atlas";
     public static final String TEXTURE_ATLAS_JOINTED = "#atlas_jointed";
@@ -395,8 +395,8 @@ public abstract class PipeModelLogicProvider implements IComponentLogicProvider 
                         baseTextureGetter == null ? null : baseTextureGetter.apply(i),
                         textureName, tintIndex)
                         .setUVTransformation(m -> {
-                            MatrixUtils.scale(m, .25f, .25f);
-                            MatrixUtils.translate(m, 4 * x, 4 * y);
+                            MatrixUtils.scale(m, 4);
+                            MatrixUtils.translate(m, 16 * x, 16 * y);
                         });
             }
         }

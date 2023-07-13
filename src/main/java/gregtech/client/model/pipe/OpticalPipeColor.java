@@ -11,7 +11,7 @@ import net.minecraft.world.IBlockAccess;
 
 import javax.annotation.Nonnull;
 
-import static gregtech.client.model.pipe.PipeModelLogicProvider.TINT_OVERLAY;
+import static gregtech.client.model.pipe.PipeModelLogicProvider.*;
 
 public class OpticalPipeColor extends PipeColor<BlockOpticalPipe, OpticalPipeType, OpticalPipeProperties> {
 
@@ -30,6 +30,10 @@ public class OpticalPipeColor extends PipeColor<BlockOpticalPipe, OpticalPipeTyp
                                   @Nonnull BlockPos pos,
                                   int tintIndex,
                                   @Nonnull IPipeTile<OpticalPipeType, OpticalPipeProperties> tile) {
-        return tintIndex == TINT_OVERLAY ? tile.getPaintingColor() : -1;
+        return switch (tintIndex) {
+            case TINT_FRAME, TINT_FRAME_INNER -> materialColorOrDefault(tile.getFrameMaterial(), -1);
+            case TINT_OVERLAY -> tile.getPaintingColor();
+            default -> -1;
+        };
     }
 }

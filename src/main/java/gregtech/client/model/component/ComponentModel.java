@@ -3,19 +3,23 @@ package gregtech.client.model.component;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import gregtech.api.GTValues;
+import gregtech.client.utils.MatrixUtils;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.client.renderer.block.model.IBakedModel;
+import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.vertex.VertexFormat;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.model.IModel;
 import net.minecraftforge.common.model.IModelState;
+import net.minecraftforge.common.model.TRSRTransformation;
 import net.minecraftforge.fml.common.Loader;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.vecmath.Matrix4f;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -30,6 +34,7 @@ public class ComponentModel implements IModel {
     private final boolean uvLock;
 
     private final ModelTextureMapping textureMappings;
+    private final Map<ItemCameraTransforms.TransformType, TRSRTransformation> cameraTransforms;
 
     @Nullable
     private ImmutableList<ImmutableList<Component>> parts;
@@ -55,6 +60,11 @@ public class ComponentModel implements IModel {
         this.gui3d = gui3d;
         this.uvLock = uvLock;
         this.textureMappings = Objects.requireNonNull(textureMappings);
+        this.cameraTransforms = new EnumMap<>(ItemCameraTransforms.TransformType.class);
+        for (ItemCameraTransforms.TransformType type : ItemCameraTransforms.TransformType.values()) {
+            Matrix4f mat = MatrixUtils.toVecmath(logicProvider.getCameraTransform(type));
+            this.cameraTransforms.put(type, mat != null ? new TRSRTransformation(mat) : TRSRTransformation.identity());
+        }
     }
 
     @Nonnull
@@ -77,6 +87,11 @@ public class ComponentModel implements IModel {
     @Nonnull
     public final ModelTextureMapping getTextureMappings() {
         return textureMappings;
+    }
+
+    @Nonnull
+    public Map<ItemCameraTransforms.TransformType, TRSRTransformation> getCameraTransforms() {
+        return Collections.unmodifiableMap(cameraTransforms);
     }
 
     private void buildLogic() {
@@ -167,9 +182,16 @@ public class ComponentModel implements IModel {
     public IBakedModel bake(@Nonnull IModelState state,
                             @Nonnull VertexFormat format,
                             @Nonnull Function<ResourceLocation, TextureAtlasSprite> bakedTextureGetter) {
+        Map<ItemCameraTransforms.TransformType, TRSRTransformation> cameraTransforms = new EnumMap<>(ItemCameraTransforms.TransformType.class);
+        for (ItemCameraTransforms.TransformType type : ItemCameraTransforms.TransformType.values()) {
+            Optional<TRSRTransformation> o = state.apply(Optional.of(type));
+            o.ifPresent(t -> cameraTransforms.put(type, t));
+        }
+
         if (Loader.isModLoaded(GTValues.MODID_CTM)) {
             IBakedModel baked = ConnectedComponentModelMetadata.bakeConnectedTextureModel(this, state, format, bakedTextureGetter,
                     this.textureMappings.getTextureOrMissing("#particle", bakedTextureGetter),
+                    cameraTransforms,
                     this.ambientOcclusion,
                     this.gui3d
             );
@@ -179,8 +201,17 @@ public class ComponentModel implements IModel {
                 new BakedComponent(this, state, format, bakedTextureGetter),
                 this.getLogic(),
                 this.textureMappings.getTextureOrMissing("#particle", bakedTextureGetter),
+                cameraTransforms,
                 this.ambientOcclusion,
                 this.gui3d);
+    }
+
+    @Nonnull
+    @Override
+    public IModelState getDefaultState() {
+        return o -> o.<Optional<TRSRTransformation>>map(modelPart -> modelPart instanceof ItemCameraTransforms.TransformType type ?
+                Optional.of(this.cameraTransforms.get(type)) :
+                Optional.empty()).orElseGet(() -> Optional.of(TRSRTransformation.identity()));
     }
 
     public static final class Register {

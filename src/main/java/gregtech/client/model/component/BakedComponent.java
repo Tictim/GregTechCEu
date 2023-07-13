@@ -1,7 +1,6 @@
 package gregtech.client.model.component;
 
 import com.google.common.collect.ImmutableList;
-import gregtech.client.utils.BloomEffectUtil;
 import gregtech.client.utils.CubeVertex;
 import gregtech.client.utils.MatrixUtils;
 import it.unimi.dsi.fastutil.ints.IntCollection;
@@ -98,7 +97,7 @@ public final class BakedComponent {
                              Function<ResourceLocation, TextureAtlasSprite> bakedTextureGetter,
                              Component component,
                              ImmutableList.Builder<ModelStates.Quad> quads) {
-        Vector3f[] verts = new Vector3f[values().length];
+        Vector3f[] verts = new Vector3f[CubeVertex.values().length];
         VertexFormat emissiveVertexFormat = null;
 
         for (ComponentFace face : component.getFaces()) {
@@ -186,7 +185,7 @@ public final class BakedComponent {
                 quads.add(new ModelStates.Quad(
                         quad.build(),
                         face.cullFace,
-                        texture.isBloom() ? BloomEffectUtil.BLOOM : null));
+                        texture.getRenderLayer()));
             }
         }
     }
