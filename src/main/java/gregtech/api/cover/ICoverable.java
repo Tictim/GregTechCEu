@@ -68,6 +68,7 @@ public interface ICoverable {
      */
     double getCoverPlateThickness();
 
+    @SideOnly(Side.CLIENT)
     int getPaintingColorForRendering();
 
     boolean shouldRenderBackSide();
